@@ -32,10 +32,14 @@ const elements = {
   heroOrderCount: document.getElementById("heroOrderCount"),
   heroPendingCount: document.getElementById("heroPendingCount"),
   authSessionInfo: document.getElementById("authSessionInfo"),
+  authCard: document.getElementById("authCard"),
   authForm: document.getElementById("authForm"),
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
   signOutButton: document.getElementById("signOutButton"),
+  signOutMiniButton: document.getElementById("signOutMiniButton"),
+  authMiniBar: document.getElementById("authMiniBar"),
+  authMiniText: document.getElementById("authMiniText"),
   roleTabs: [...document.querySelectorAll(".role-tab")],
   views: {
     customer: document.getElementById("customerView"),
@@ -75,13 +79,13 @@ const elements = {
 
 initializeApp().catch((error) => {
   console.error(error);
-  setStatus(`初始化失敗：${error.message}`);
+  setDatabaseError();
 });
 
 async function initializeApp() {
   bindEvents();
   await bootstrapSupabase();
-  setStatus("Supabase 已連線，系統可以開始使用。");
+  setStatus("系統正常運行中");
 }
 
 function bindEvents() {
@@ -95,6 +99,10 @@ function bindEvents() {
   });
 
   elements.signOutButton.addEventListener("click", async () => {
+    await signOut();
+  });
+
+  elements.signOutMiniButton.addEventListener("click", async () => {
     await signOut();
   });
 
@@ -236,7 +244,7 @@ async function loadProfile(userId) {
 
   if (error) {
     console.error(error);
-    setStatus("登入成功，但尚未找到角色資料，請確認 profiles 表。");
+    setStatus("登入成功，但找不到對應角色資料。");
     return null;
   }
 
@@ -252,9 +260,14 @@ function subscribeRealtime() {
       "postgres_changes",
       { event: "*", schema: "public", table: "menu_items" },
       async () => {
-        await loadPublicData();
-        renderAll();
-        setStatus("菜單資料已同步更新。");
+        try {
+          await loadPublicData();
+          renderAll();
+          setStatus("系統正常運行中");
+        } catch (error) {
+          console.error(error);
+          setDatabaseError();
+        }
       }
     )
     .subscribe();
@@ -270,9 +283,14 @@ function subscribeRealtime() {
         if (!hasStaffAccess()) {
           return;
         }
-        await loadOrders();
-        renderAll();
-        setStatus("訂單資料已同步更新。");
+        try {
+          await loadOrders();
+          renderAll();
+          setStatus("系統正常運行中");
+        } catch (error) {
+          console.error(error);
+          setDatabaseError();
+        }
       }
     )
     .subscribe();
@@ -327,12 +345,15 @@ async function signOut() {
 function renderAuthState() {
   if (!state.session?.user) {
     elements.authSessionInfo.textContent = "尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。";
+    renderAuthLayout();
     return;
   }
 
   const roleLabel = state.profile?.role || "未設定角色";
   const nameLabel = state.profile?.full_name || state.session.user.email;
   elements.authSessionInfo.textContent = `已登入：${nameLabel} / ${roleLabel}`;
+  elements.authMiniText.textContent = `${nameLabel} / ${roleLabel}`;
+  renderAuthLayout();
 }
 
 function renderAccess() {
@@ -370,6 +391,8 @@ function switchView(viewName) {
   Object.entries(elements.views).forEach(([name, view]) => {
     view.classList.toggle("active", name === viewName);
   });
+
+  renderAuthLayout();
 }
 
 function renderAll() {
@@ -560,25 +583,31 @@ async function submitOrder() {
     return;
   }
 
-  const response = await fetch("/api/create-order", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch("/api/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const result = await response.json();
-  if (!response.ok) {
-    setStatus(`建立訂單失敗：${result.error || "未知錯誤"}`);
-    return;
+    const result = await response.json();
+    if (!response.ok) {
+      setStatus(`建立訂單失敗：${result.error || "未知錯誤"}`);
+      return;
+    }
+
+    state.cart = [];
+    elements.orderForm.reset();
+    renderCart();
+    switchView("customer");
+    setStatus(`訂單 ${result.orderCode} 已送出。`);
+    window.alert("點餐成功！");
+  } catch (error) {
+    console.error(error);
+    setDatabaseError();
   }
-
-  state.cart = [];
-  elements.orderForm.reset();
-  renderCart();
-  switchView("customer");
-  setStatus(`訂單 ${result.orderCode} 已送出。`);
 }
 
 function renderStaffSummary() {
@@ -821,6 +850,16 @@ function createEmptyState(message) {
 
 function setStatus(message) {
   elements.statusText.textContent = message;
+}
+
+function setDatabaseError() {
+  setStatus("資料庫連線異常，請稍後再試。");
+}
+
+function renderAuthLayout() {
+  const showCompactAuth = Boolean(state.session?.user) && ["staff", "admin"].includes(state.currentView);
+  elements.authCard.classList.toggle("compact-auth", showCompactAuth);
+  elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
 }
 
 function formatCurrency(amount) {

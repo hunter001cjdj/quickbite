@@ -54,6 +54,7 @@ body {
 
 .auth-card {
   padding: 24px;
+  align-self: start;
 }
 
 .eyebrow,
@@ -126,6 +127,34 @@ body {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(90, 54, 26, 0.08);
+}
+
+.auth-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.auth-mini span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.auth-card.compact-auth {
+  padding: 14px 16px;
+  width: fit-content;
+  justify-self: end;
+}
+
+.auth-card.compact-auth .panel-heading,
+.auth-card.compact-auth .auth-session,
+.auth-card.compact-auth .auth-form {
+  display: none;
+}
+
+.auth-card.compact-auth .auth-mini {
+  display: flex;
 }
 
 .role-tabs {
@@ -523,6 +552,15 @@ button:disabled {
 
   .cart-panel {
     position: static;
+  }
+
+  .auth-card.compact-auth {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .auth-card.compact-auth .auth-mini {
+    justify-content: space-between;
   }
 }
 

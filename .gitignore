@@ -14,3 +14,5 @@ caches/
 # Local runtime files
 *.log
 .vercel/
+
+.vercel
