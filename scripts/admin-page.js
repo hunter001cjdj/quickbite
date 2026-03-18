@@ -33,7 +33,7 @@ const el = {
 
 initialize().catch((error) => {
   console.error(error);
-  setText(el.adminStatusText, "資料庫連線異常，請稍後再試。");
+  setText(el.adminStatusText, `初始化失敗：${error.message || "資料庫連線異常，請稍後再試。"}`);
 });
 
 async function initialize() {
