@@ -152,6 +152,10 @@ body {
   flex-wrap: wrap;
 }
 
+.auth-register-row {
+  margin-top: 12px;
+}
+
 .auth-card.compact-auth {
   padding: 14px 16px;
   width: fit-content;
@@ -574,6 +578,29 @@ textarea {
 
 .tracker-row span {
   color: var(--muted);
+}
+
+.customer-order-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.customer-order-item {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(150, 78, 19, 0.08);
+}
+
+.customer-order-item strong,
+.customer-order-item span {
+  display: block;
+}
+
+.customer-order-item span {
+  color: var(--muted);
+  margin-top: 4px;
 }
 
 .staff-summary {

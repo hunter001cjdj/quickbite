@@ -17,6 +17,7 @@ const state = {
   currentView: "customer",
   menuItems: [],
   orders: [],
+  customerOrders: [],
   cart: [],
   pendingOrderStatusSelections: {},
   customerFilters: {
@@ -31,6 +32,7 @@ const state = {
 
 const elements = {
   statusText: document.getElementById("statusText"),
+  heroStats: document.querySelector(".hero-stats"),
   heroMenuCount: document.getElementById("heroMenuCount"),
   heroOrderCount: document.getElementById("heroOrderCount"),
   heroPendingCount: document.getElementById("heroPendingCount"),
@@ -40,6 +42,8 @@ const elements = {
   authForm: document.getElementById("authForm"),
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
+  customerSignUpButton: document.getElementById("customerSignUpButton"),
+  authRegisterRow: document.getElementById("authRegisterRow"),
   signOutButton: document.getElementById("signOutButton"),
   signOutCardButton: document.getElementById("signOutCardButton"),
   signOutMiniButton: document.getElementById("signOutMiniButton"),
@@ -78,6 +82,7 @@ const elements = {
   customerOrderState: document.getElementById("customerOrderState"),
   customerOrderCreatedAt: document.getElementById("customerOrderCreatedAt"),
   refreshCustomerOrderButton: document.getElementById("refreshCustomerOrderButton"),
+  customerOrderList: document.getElementById("customerOrderList"),
   orderSearchInput: document.getElementById("orderSearchInput"),
   orderStatusFilter: document.getElementById("orderStatusFilter"),
   staffSummaryCards: document.getElementById("staffSummaryCards"),
@@ -120,6 +125,10 @@ function bindEvents() {
 
   elements.signOutButton.addEventListener("click", async () => {
     await signOut();
+  });
+
+  elements.customerSignUpButton.addEventListener("click", async () => {
+    await signUpCustomer();
   });
 
   elements.signOutCardButton.addEventListener("click", async () => {
@@ -247,8 +256,13 @@ async function loadPublicData() {
 async function refreshSecureData() {
   if (hasStaffAccess()) {
     await loadOrders();
+    state.customerOrders = [];
+  } else if (state.session?.user) {
+    await loadCustomerOrders();
+    state.orders = [];
   } else {
     state.orders = [];
+    state.customerOrders = [];
   }
 
   renderAll();
@@ -292,12 +306,47 @@ async function loadProfile(userId) {
     .single();
 
   if (error) {
-    console.error(error);
-    setStatus("登入成功，但找不到對應角色資料。");
-    return null;
+    return {
+      id: userId,
+      full_name: "顧客",
+      role: "customer",
+    };
   }
 
   return data;
+}
+
+async function loadCustomerOrders() {
+  const { data, error } = await state.supabase
+    .from("orders")
+    .select(`
+      id,
+      order_code,
+      customer_name,
+      phone,
+      address,
+      note,
+      status,
+      total,
+      created_at,
+      order_items (
+        id,
+        item_name,
+        price,
+        quantity,
+        subtotal
+      )
+    `)
+    .eq("customer_user_id", state.session.user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    state.customerOrders = [];
+    return;
+  }
+
+  state.customerOrders = Array.isArray(data) ? data : [];
 }
 
 function subscribeRealtime() {
@@ -330,6 +379,15 @@ function subscribeRealtime() {
       { event: "*", schema: "public", table: "orders" },
       async () => {
         if (!hasStaffAccess()) {
+          try {
+            if (state.session?.user && !hasStaffAccess()) {
+              await loadCustomerOrders();
+              renderCustomerOrderList();
+              await refreshCustomerOrderStatus();
+            }
+          } catch (error) {
+            console.error(error);
+          }
           return;
         }
         try {
@@ -376,6 +434,28 @@ async function signIn() {
   setStatus("登入成功，正在載入權限與資料。");
 }
 
+async function signUpCustomer() {
+  const email = elements.authEmailInput.value.trim();
+  const password = elements.authPasswordInput.value.trim();
+
+  if (!email || !password) {
+    setStatus("請先輸入 Email 與密碼，再建立顧客帳號。");
+    return;
+  }
+
+  const { error } = await state.supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    setStatus(`顧客註冊失敗：${error.message}`);
+    return;
+  }
+
+  setStatus("顧客帳號建立成功，請直接登入使用。");
+}
+
 async function signOut() {
   const { error } = await state.supabase.auth.signOut();
   if (error) {
@@ -385,6 +465,7 @@ async function signOut() {
 
   state.profile = null;
   state.orders = [];
+  state.customerOrders = [];
   renderAll();
   renderAuthState();
   renderAccess();
@@ -449,16 +530,19 @@ function switchView(viewName) {
   });
 
   renderAuthLayout();
+  renderHeroStatsVisibility();
 }
 
 function renderAll() {
   renderHeroStats();
+  renderHeroStatsVisibility();
   renderCategoryFilters();
   renderCustomerMenu();
   renderCart();
   renderStaffSummary();
   renderStaffOrders();
   renderAdminMenu();
+  renderCustomerOrderList();
 }
 
 function renderHeroStats() {
@@ -660,6 +744,10 @@ async function submitOrder() {
     switchView("customer");
     setStatus(`訂單 ${result.orderCode} 已送出。`);
     saveCustomerOrder(result.orderCode, payload.phone);
+    if (state.session?.user && !hasStaffAccess()) {
+      await loadCustomerOrders();
+      renderCustomerOrderList();
+    }
     await refreshCustomerOrderStatus();
     window.alert("點餐成功！");
   } catch (error) {
@@ -741,6 +829,7 @@ function renderStaffOrders() {
       </div>
       <div class="status-submit-row">
         <button class="primary-button" type="button" data-submit-status>更新狀態</button>
+        <button class="ghost-button danger-button" type="button" data-delete-order>刪除訂單</button>
       </div>
       <p class="order-feedback" data-order-feedback>請先選擇要更新的狀態。</p>
     `;
@@ -769,6 +858,12 @@ function renderStaffOrders() {
 
       feedback.textContent = `正在更新為「${STATUS_META[selectedStatus]}」...`;
       await updateOrderStatus(order.id, selectedStatus, feedback, order.order_code);
+    });
+
+    card.querySelector("[data-delete-order]").addEventListener("click", async () => {
+      const feedback = card.querySelector("[data-order-feedback]");
+      feedback.textContent = "正在刪除訂單...";
+      await deleteOrder(order.id, feedback, order.order_code);
     });
 
     elements.staffOrderList.appendChild(card);
@@ -811,6 +906,45 @@ async function updateOrderStatus(orderId, nextStatus, feedbackEl = null, orderCo
     feedbackEl.textContent = `訂單 ${orderCode || ""} 已更新為「${STATUS_META[nextStatus]}」。`;
   }
   delete state.pendingOrderStatusSelections[orderId];
+  await refreshCustomerOrderStatus();
+}
+
+async function deleteOrder(orderId, feedbackEl = null, orderCode = "") {
+  try {
+    const response = await fetch("/api/delete-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ orderId }),
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "刪除訂單失敗");
+    }
+
+    setStatus(`訂單 ${orderCode} 已刪除。`);
+    if (feedbackEl) {
+      feedbackEl.textContent = `訂單 ${orderCode} 已刪除。`;
+    }
+
+    state.pendingOrderStatusSelections[orderId] = undefined;
+    await loadOrders();
+    renderStaffSummary();
+    renderStaffOrders();
+    if (state.session?.user && !hasStaffAccess()) {
+      await loadCustomerOrders();
+      renderCustomerOrderList();
+    }
+    await refreshCustomerOrderStatus();
+  } catch (error) {
+    console.error(error);
+    setStatus(`刪除訂單失敗：${error.message}`);
+    if (feedbackEl) {
+      feedbackEl.textContent = `刪除失敗：${error.message}`;
+    }
+  }
 }
 
 async function saveMenuItemFromForm() {
@@ -954,9 +1088,15 @@ function renderAuthLayout() {
   elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
   elements.authForm.classList.toggle("hidden", Boolean(state.session?.user));
   elements.authLogoutBox.classList.toggle("hidden", !state.session?.user || showCompactAuth);
+  elements.authRegisterRow.classList.toggle("hidden", Boolean(state.session?.user));
   elements.customerTabButton.classList.remove("hidden");
   elements.staffTabButton.classList.add("hidden");
   elements.adminTabButton.classList.add("hidden");
+}
+
+function renderHeroStatsVisibility() {
+  const hideStats = state.currentView === "customer";
+  elements.heroStats.classList.toggle("hidden", hideStats);
 }
 
 function startClock() {
@@ -1000,6 +1140,15 @@ function getSavedCustomerOrder() {
 
 async function refreshCustomerOrderStatus() {
   const savedOrder = getSavedCustomerOrder();
+  const liveOrder = state.customerOrders[0];
+  if (liveOrder) {
+    elements.customerOrderStatus.classList.remove("hidden");
+    elements.customerOrderCode.textContent = liveOrder.order_code;
+    elements.customerOrderState.textContent = STATUS_META[liveOrder.status] || liveOrder.status;
+    elements.customerOrderCreatedAt.textContent = formatDateTime(liveOrder.created_at);
+    return;
+  }
+
   if (!savedOrder?.orderCode || !savedOrder?.phone) {
     elements.customerOrderStatus.classList.add("hidden");
     return;
@@ -1029,6 +1178,25 @@ async function refreshCustomerOrderStatus() {
     elements.customerOrderCreatedAt.textContent = "-";
     setDatabaseError();
   }
+}
+
+function renderCustomerOrderList() {
+  elements.customerOrderList.innerHTML = "";
+
+  if (!state.customerOrders.length) {
+    return;
+  }
+
+  state.customerOrders.slice(0, 5).forEach((order) => {
+    const card = document.createElement("div");
+    card.className = "customer-order-item";
+    card.innerHTML = `
+      <strong>${escapeHtml(order.order_code)}</strong>
+      <span>${STATUS_META[order.status] || order.status}</span>
+      <span>${formatDateTime(order.created_at)}</span>
+    `;
+    elements.customerOrderList.appendChild(card);
+  });
 }
 
 function formatCurrency(amount) {
