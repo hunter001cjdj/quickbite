@@ -142,6 +142,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 ## 之後由你自己更新 Vercel 的流程
 
+目前已經把本地 `.vercel` link、`local-server.js`、測試 log 與本地快取檔清掉，後續建議只走：
+
+`本機修改 → git push GitHub → Vercel 線上專案自動 / 手動 Redeploy`
+
 你說後續要由你自己更新 Vercel，可以照這個流程：
 
 1. 先把本機改動 commit
@@ -162,20 +166,6 @@ git push origin main
 4. 如果這個 repo 已經綁好 GitHub，自動會出現新的 deployment
 
 5. 你也可以手動在 Vercel 按 `Redeploy`
-
-## 如果你要手動重新連一次 Vercel
-
-在專案根目錄執行：
-
-```bash
-npx vercel link
-```
-
-如果要直接手動部署：
-
-```bash
-npx vercel --prod
-```
 
 ## 注意事項
 
