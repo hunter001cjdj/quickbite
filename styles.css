@@ -145,6 +145,13 @@ body {
   font-size: 0.95rem;
 }
 
+.backoffice-links {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
 .auth-card.compact-auth {
   padding: 14px 16px;
   width: fit-content;
@@ -520,6 +527,27 @@ textarea {
   border-color: transparent;
 }
 
+.status-submit-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.order-feedback {
+  color: var(--accent-deep);
+  font-size: 0.92rem;
+  min-height: 22px;
+  margin-top: 10px;
+}
+
+.panel-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .customer-order-status {
   margin-top: 16px;
 }
@@ -599,6 +627,12 @@ button:disabled {
 
   .auth-card.compact-auth .auth-mini {
     justify-content: space-between;
+  }
+
+  .backoffice-links,
+  .status-submit-row,
+  .panel-actions {
+    justify-content: stretch;
   }
 }
 

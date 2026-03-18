@@ -18,6 +18,7 @@ const state = {
   menuItems: [],
   orders: [],
   cart: [],
+  pendingOrderStatusSelections: {},
   customerFilters: {
     query: "",
     category: "all",
@@ -45,6 +46,12 @@ const elements = {
   authMiniBar: document.getElementById("authMiniBar"),
   authMiniText: document.getElementById("authMiniText"),
   authLogoutBox: document.getElementById("authLogoutBox"),
+  backofficeLinks: document.getElementById("backofficeLinks"),
+  goStaffViewButton: document.getElementById("goStaffViewButton"),
+  goAdminViewButton: document.getElementById("goAdminViewButton"),
+  customerTabButton: document.getElementById("customerTabButton"),
+  staffTabButton: document.getElementById("staffTabButton"),
+  adminTabButton: document.getElementById("adminTabButton"),
   roleTabs: [...document.querySelectorAll(".role-tab")],
   views: {
     customer: document.getElementById("customerView"),
@@ -75,6 +82,7 @@ const elements = {
   orderStatusFilter: document.getElementById("orderStatusFilter"),
   staffSummaryCards: document.getElementById("staffSummaryCards"),
   staffOrderList: document.getElementById("staffOrderList"),
+  backToCustomerFromStaff: document.getElementById("backToCustomerFromStaff"),
   menuForm: document.getElementById("menuForm"),
   menuItemIdInput: document.getElementById("menuItemIdInput"),
   menuNameInput: document.getElementById("menuNameInput"),
@@ -85,6 +93,7 @@ const elements = {
   menuAvailableInput: document.getElementById("menuAvailableInput"),
   resetMenuFormButton: document.getElementById("resetMenuFormButton"),
   adminMenuList: document.getElementById("adminMenuList"),
+  backToCustomerFromAdmin: document.getElementById("backToCustomerFromAdmin"),
 };
 
 initializeApp().catch((error) => {
@@ -119,6 +128,26 @@ function bindEvents() {
 
   elements.signOutMiniButton.addEventListener("click", async () => {
     await signOut();
+  });
+
+  elements.goStaffViewButton.addEventListener("click", () => {
+    switchView("staff");
+    setStatus("已切換到員工總覽。");
+  });
+
+  elements.goAdminViewButton.addEventListener("click", () => {
+    switchView("admin");
+    setStatus("已切換到管理者後台。");
+  });
+
+  elements.backToCustomerFromStaff.addEventListener("click", () => {
+    switchView("customer");
+    setStatus("已返回顧客頁。");
+  });
+
+  elements.backToCustomerFromAdmin.addEventListener("click", () => {
+    switchView("customer");
+    setStatus("已返回顧客頁。");
   });
 
   elements.menuSearchInput.addEventListener("input", (event) => {
@@ -393,6 +422,12 @@ function renderAccess() {
   if (!adminAllowed) {
     elements.adminAccessGate.textContent = "請先登入 admin 帳號，才能管理菜單。";
   }
+
+  elements.staffTabButton.classList.toggle("hidden", true);
+  elements.adminTabButton.classList.toggle("hidden", true);
+  elements.backofficeLinks.classList.toggle("hidden", !(staffAllowed || adminAllowed));
+  elements.goStaffViewButton.classList.toggle("hidden", !staffAllowed);
+  elements.goAdminViewButton.classList.toggle("hidden", !adminAllowed);
 }
 
 function hasStaffAccess() {
@@ -704,12 +739,36 @@ function renderStaffOrders() {
       <div class="order-actions">
         ${renderStatusButtons(order.status)}
       </div>
+      <div class="status-submit-row">
+        <button class="primary-button" type="button" data-submit-status>更新狀態</button>
+      </div>
+      <p class="order-feedback" data-order-feedback>請先選擇要更新的狀態。</p>
     `;
 
     card.querySelectorAll("[data-next-status]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        await updateOrderStatus(order.id, button.dataset.nextStatus);
+      button.addEventListener("click", () => {
+        state.pendingOrderStatusSelections[order.id] = button.dataset.nextStatus;
+        card.querySelectorAll("[data-next-status]").forEach((item) => {
+          item.classList.toggle("is-active", item.dataset.nextStatus === button.dataset.nextStatus);
+        });
+        const feedback = card.querySelector("[data-order-feedback]");
+        feedback.textContent = `已選擇「${STATUS_META[button.dataset.nextStatus]}」，按下「更新狀態」後送出。`;
+        setStatus(`已選擇訂單 ${order.order_code} 的狀態為「${STATUS_META[button.dataset.nextStatus]}」。`);
       });
+    });
+
+    card.querySelector("[data-submit-status]").addEventListener("click", async () => {
+      const selectedStatus = state.pendingOrderStatusSelections[order.id];
+      const feedback = card.querySelector("[data-order-feedback]");
+
+      if (!selectedStatus) {
+        feedback.textContent = "請先點選一個狀態，再按更新狀態。";
+        setStatus("請先選擇要更新的訂單狀態。");
+        return;
+      }
+
+      feedback.textContent = `正在更新為「${STATUS_META[selectedStatus]}」...`;
+      await updateOrderStatus(order.id, selectedStatus, feedback, order.order_code);
     });
 
     elements.staffOrderList.appendChild(card);
@@ -719,16 +778,18 @@ function renderStaffOrders() {
 function renderStatusButtons(currentStatus) {
   return Object.entries(STATUS_META)
     .map(([status, label]) => {
-      const disabled = currentStatus === status ? "disabled" : "";
       const activeClass = currentStatus === status ? " is-active" : "";
-      return `<button class="ghost-button${activeClass}" type="button" data-next-status="${status}" ${disabled}>${label}</button>`;
+      return `<button class="ghost-button${activeClass}" type="button" data-next-status="${status}">${label}</button>`;
     })
     .join("");
 }
 
-async function updateOrderStatus(orderId, nextStatus) {
+async function updateOrderStatus(orderId, nextStatus, feedbackEl = null, orderCode = "") {
   if (!hasStaffAccess()) {
     setStatus("你沒有更新訂單狀態的權限。");
+    if (feedbackEl) {
+      feedbackEl.textContent = "你沒有更新這筆訂單的權限。";
+    }
     return;
   }
 
@@ -739,10 +800,17 @@ async function updateOrderStatus(orderId, nextStatus) {
 
   if (error) {
     setStatus(`更新訂單狀態失敗：${error.message}`);
+    if (feedbackEl) {
+      feedbackEl.textContent = `更新失敗：${error.message}`;
+    }
     return;
   }
 
   setStatus(`訂單狀態已更新為「${STATUS_META[nextStatus]}」。`);
+  if (feedbackEl) {
+    feedbackEl.textContent = `訂單 ${orderCode || ""} 已更新為「${STATUS_META[nextStatus]}」。`;
+  }
+  delete state.pendingOrderStatusSelections[orderId];
 }
 
 async function saveMenuItemFromForm() {
@@ -886,6 +954,9 @@ function renderAuthLayout() {
   elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
   elements.authForm.classList.toggle("hidden", Boolean(state.session?.user));
   elements.authLogoutBox.classList.toggle("hidden", !state.session?.user || showCompactAuth);
+  elements.customerTabButton.classList.remove("hidden");
+  elements.staffTabButton.classList.add("hidden");
+  elements.adminTabButton.classList.add("hidden");
 }
 
 function startClock() {

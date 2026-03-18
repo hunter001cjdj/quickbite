@@ -61,13 +61,17 @@
           <span id="authMiniText">已登入</span>
           <button id="signOutMiniButton" class="secondary-button" type="button">登出</button>
         </div>
+        <div class="backoffice-links hidden" id="backofficeLinks">
+          <button id="goStaffViewButton" class="ghost-button" type="button">員工總覽</button>
+          <button id="goAdminViewButton" class="ghost-button" type="button">管理者後台</button>
+        </div>
       </aside>
     </section>
 
     <nav class="role-tabs" aria-label="系統角色切換">
-      <button class="role-tab active" type="button" data-view="customer">顧客下單</button>
-      <button class="role-tab" type="button" data-view="staff">員工總覽</button>
-      <button class="role-tab" type="button" data-view="admin">管理者後台</button>
+      <button class="role-tab active" type="button" data-view="customer" id="customerTabButton">顧客下單</button>
+      <button class="role-tab hidden" type="button" data-view="staff" id="staffTabButton">員工總覽</button>
+      <button class="role-tab hidden" type="button" data-view="admin" id="adminTabButton">管理者後台</button>
     </nav>
 
     <section class="view active" id="customerView">
@@ -192,6 +196,9 @@
             <div class="staff-summary" id="staffSummaryCards"></div>
             <div class="orders-list" id="staffOrderList"></div>
           </div>
+          <div class="panel-actions">
+            <button id="backToCustomerFromStaff" class="secondary-button" type="button">返回顧客頁</button>
+          </div>
         </article>
       </div>
     </section>
@@ -251,6 +258,9 @@
           </div>
           <div class="admin-menu-list" id="adminMenuList"></div>
         </article>
+      </div>
+      <div class="panel-actions">
+        <button id="backToCustomerFromAdmin" class="secondary-button" type="button">返回顧客頁</button>
       </div>
     </section>
 
