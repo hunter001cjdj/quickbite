@@ -1,0 +1,16 @@
+# Local env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+caches/
+
+# JetBrains
+.idea/
+/shelf/
+/workspace.xml
+
+# Local runtime files
+*.log
+.vercel/

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 線上點餐系統</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Supabase + Vercel Ordering Suite</p>
+        <h1>QuickBite 線上點餐系統</h1>
+        <p class="subtitle">
+          顧客可直接建立訂單，員工與管理者登入後可同步查看與處理資料。菜單、訂單、狀態更新都會寫入 Supabase，支援多人同時在線使用。
+        </p>
+        <div class="hero-stats">
+          <article>
+            <span>菜單品項</span>
+            <strong id="heroMenuCount">0</strong>
+          </article>
+          <article>
+            <span>全部訂單</span>
+            <strong id="heroOrderCount">0</strong>
+          </article>
+          <article>
+            <span>待處理</span>
+            <strong id="heroPendingCount">0</strong>
+          </article>
+        </div>
+      </div>
+
+      <aside class="auth-card panel">
+        <div class="panel-heading compact">
+          <div>
+            <p class="section-tag">Auth</p>
+            <h2>員工 / 管理者登入</h2>
+          </div>
+        </div>
+
+        <div class="auth-session" id="authSessionInfo">
+          尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。
+        </div>
+
+        <form id="authForm" class="auth-form">
+          <label class="field">
+            <span>Email</span>
+            <input id="authEmailInput" type="email" placeholder="staff@example.com" required>
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="authPasswordInput" type="password" placeholder="至少 6 碼" required>
+          </label>
+          <div class="button-row">
+            <button class="primary-button" type="submit">登入</button>
+            <button id="signOutButton" class="secondary-button" type="button">登出</button>
+          </div>
+        </form>
+      </aside>
+    </section>
+
+    <nav class="role-tabs" aria-label="系統角色切換">
+      <button class="role-tab active" type="button" data-view="customer">顧客下單</button>
+      <button class="role-tab" type="button" data-view="staff">員工總覽</button>
+      <button class="role-tab" type="button" data-view="admin">管理者後台</button>
+    </nav>
+
+    <section class="view active" id="customerView">
+      <div class="view-grid customer-layout">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Customer</p>
+              <h2>菜單點餐</h2>
+            </div>
+            <p class="section-note">菜單來自 Supabase，新增或修改後會自動同步到這裡。</p>
+          </div>
+
+          <div class="menu-toolbar">
+            <label class="search-field">
+              <span>搜尋餐點</span>
+              <input id="menuSearchInput" type="search" placeholder="例如：雞腿便當、奶茶">
+            </label>
+            <div class="pill-group" id="categoryFilter"></div>
+          </div>
+
+          <div class="menu-grid" id="customerMenuList"></div>
+        </article>
+
+        <aside class="panel cart-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Checkout</p>
+              <h2>建立訂單</h2>
+            </div>
+          </div>
+
+          <form id="orderForm" class="order-form">
+            <label class="field">
+              <span>顧客姓名</span>
+              <input id="customerNameInput" type="text" placeholder="王小明" required>
+            </label>
+            <label class="field">
+              <span>電話</span>
+              <input id="customerPhoneInput" type="tel" placeholder="0912-345-678" required>
+            </label>
+            <label class="field">
+              <span>地址</span>
+              <input id="customerAddressInput" type="text" placeholder="台北市信義區..." required>
+            </label>
+            <label class="field">
+              <span>備註</span>
+              <textarea id="customerNoteInput" rows="3" placeholder="少冰、不要香菜、幾點送達..."></textarea>
+            </label>
+
+            <div class="cart-box">
+              <div class="cart-header">
+                <h3>購物車</h3>
+                <button id="clearCartButton" class="text-button" type="button">清空</button>
+              </div>
+              <div id="cartItems" class="cart-items"></div>
+              <div class="cart-summary">
+                <span>總金額</span>
+                <strong id="cartTotalPrice">NT$ 0</strong>
+              </div>
+            </div>
+
+            <button class="primary-button full-width" type="submit">送出訂單</button>
+          </form>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="staffView">
+      <div class="view-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Staff</p>
+              <h2>訂單總覽</h2>
+            </div>
+            <p class="section-note">只有登入且角色為 staff 或 admin 的帳號可以查看。</p>
+          </div>
+
+          <div id="staffAccessGate" class="empty-state hidden"></div>
+
+          <div id="staffContent">
+            <div class="staff-toolbar">
+              <label class="search-field">
+                <span>搜尋訂單</span>
+                <input id="orderSearchInput" type="search" placeholder="編號、電話、地址、姓名">
+              </label>
+              <label class="search-field narrow">
+                <span>狀態篩選</span>
+                <select id="orderStatusFilter">
+                  <option value="all">全部狀態</option>
+                  <option value="new">新訂單</option>
+                  <option value="preparing">製作中</option>
+                  <option value="delivering">外送中</option>
+                  <option value="completed">已完成</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="staff-summary" id="staffSummaryCards"></div>
+            <div class="orders-list" id="staffOrderList"></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="adminView">
+      <div id="adminAccessGate" class="empty-state hidden"></div>
+
+      <div id="adminContent" class="view-grid admin-layout">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Admin</p>
+              <h2>新增與管理餐點</h2>
+            </div>
+            <p class="section-note">只有 admin 角色可以新增、編輯、刪除菜單。</p>
+          </div>
+
+          <form id="menuForm" class="menu-form">
+            <input id="menuItemIdInput" type="hidden">
+            <label class="field">
+              <span>餐點名稱</span>
+              <input id="menuNameInput" type="text" placeholder="香烤雞腿便當" required>
+            </label>
+            <label class="field">
+              <span>分類</span>
+              <input id="menuCategoryInput" type="text" placeholder="便當 / 飲料 / 小點" required>
+            </label>
+            <label class="field">
+              <span>價格</span>
+              <input id="menuPriceInput" type="number" min="0" step="1" placeholder="120" required>
+            </label>
+            <label class="field">
+              <span>排序</span>
+              <input id="menuSortOrderInput" type="number" min="0" step="1" placeholder="0">
+            </label>
+            <label class="field">
+              <span>描述</span>
+              <textarea id="menuDescriptionInput" rows="3" placeholder="主菜、配菜、辣度或特色介紹"></textarea>
+            </label>
+            <label class="checkbox-field">
+              <input id="menuAvailableInput" type="checkbox" checked>
+              <span>目前可供應</span>
+            </label>
+            <div class="button-row">
+              <button class="primary-button" type="submit">儲存餐點</button>
+              <button id="resetMenuFormButton" class="secondary-button" type="button">清除表單</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Menu</p>
+              <h2>現有菜單</h2>
+            </div>
+          </div>
+          <div class="admin-menu-list" id="adminMenuList"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="status-panel">
+      <p id="statusText">系統正在初始化，準備連線 Supabase...</p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

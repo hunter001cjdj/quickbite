@@ -1,0 +1,16 @@
+{
+  "name": "quickbite-supabase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Supabase-powered online ordering system with customer, staff, and admin flows.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "echo Use 'node local-server.js' for local testing or 'vercel dev' after fixing Vercel project settings.",
+    "local": "node local-server.js"
+  },
+  "dependencies": {
+    "vercel": "^50.33.0"
+  }
+}

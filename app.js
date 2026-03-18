@@ -1,0 +1,848 @@
+const { createClient } = window.supabase;
+
+const STATUS_META = {
+  new: "新訂單",
+  preparing: "製作中",
+  delivering: "外送中",
+  completed: "已完成",
+};
+
+const state = {
+  supabase: null,
+  session: null,
+  profile: null,
+  subscriptions: [],
+  currentView: "customer",
+  menuItems: [],
+  orders: [],
+  cart: [],
+  customerFilters: {
+    query: "",
+    category: "all",
+  },
+  staffFilters: {
+    query: "",
+    status: "all",
+  },
+};
+
+const elements = {
+  statusText: document.getElementById("statusText"),
+  heroMenuCount: document.getElementById("heroMenuCount"),
+  heroOrderCount: document.getElementById("heroOrderCount"),
+  heroPendingCount: document.getElementById("heroPendingCount"),
+  authSessionInfo: document.getElementById("authSessionInfo"),
+  authForm: document.getElementById("authForm"),
+  authEmailInput: document.getElementById("authEmailInput"),
+  authPasswordInput: document.getElementById("authPasswordInput"),
+  signOutButton: document.getElementById("signOutButton"),
+  roleTabs: [...document.querySelectorAll(".role-tab")],
+  views: {
+    customer: document.getElementById("customerView"),
+    staff: document.getElementById("staffView"),
+    admin: document.getElementById("adminView"),
+  },
+  staffAccessGate: document.getElementById("staffAccessGate"),
+  staffContent: document.getElementById("staffContent"),
+  adminAccessGate: document.getElementById("adminAccessGate"),
+  adminContent: document.getElementById("adminContent"),
+  menuSearchInput: document.getElementById("menuSearchInput"),
+  categoryFilter: document.getElementById("categoryFilter"),
+  customerMenuList: document.getElementById("customerMenuList"),
+  cartItems: document.getElementById("cartItems"),
+  cartTotalPrice: document.getElementById("cartTotalPrice"),
+  clearCartButton: document.getElementById("clearCartButton"),
+  orderForm: document.getElementById("orderForm"),
+  customerNameInput: document.getElementById("customerNameInput"),
+  customerPhoneInput: document.getElementById("customerPhoneInput"),
+  customerAddressInput: document.getElementById("customerAddressInput"),
+  customerNoteInput: document.getElementById("customerNoteInput"),
+  orderSearchInput: document.getElementById("orderSearchInput"),
+  orderStatusFilter: document.getElementById("orderStatusFilter"),
+  staffSummaryCards: document.getElementById("staffSummaryCards"),
+  staffOrderList: document.getElementById("staffOrderList"),
+  menuForm: document.getElementById("menuForm"),
+  menuItemIdInput: document.getElementById("menuItemIdInput"),
+  menuNameInput: document.getElementById("menuNameInput"),
+  menuCategoryInput: document.getElementById("menuCategoryInput"),
+  menuPriceInput: document.getElementById("menuPriceInput"),
+  menuSortOrderInput: document.getElementById("menuSortOrderInput"),
+  menuDescriptionInput: document.getElementById("menuDescriptionInput"),
+  menuAvailableInput: document.getElementById("menuAvailableInput"),
+  resetMenuFormButton: document.getElementById("resetMenuFormButton"),
+  adminMenuList: document.getElementById("adminMenuList"),
+};
+
+initializeApp().catch((error) => {
+  console.error(error);
+  setStatus(`初始化失敗：${error.message}`);
+});
+
+async function initializeApp() {
+  bindEvents();
+  await bootstrapSupabase();
+  setStatus("Supabase 已連線，系統可以開始使用。");
+}
+
+function bindEvents() {
+  elements.roleTabs.forEach((tab) => {
+    tab.addEventListener("click", () => switchView(tab.dataset.view));
+  });
+
+  elements.authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await signIn();
+  });
+
+  elements.signOutButton.addEventListener("click", async () => {
+    await signOut();
+  });
+
+  elements.menuSearchInput.addEventListener("input", (event) => {
+    state.customerFilters.query = event.target.value.trim().toLowerCase();
+    renderCustomerMenu();
+  });
+
+  elements.orderSearchInput.addEventListener("input", (event) => {
+    state.staffFilters.query = event.target.value.trim().toLowerCase();
+    renderStaffOrders();
+  });
+
+  elements.orderStatusFilter.addEventListener("change", (event) => {
+    state.staffFilters.status = event.target.value;
+    renderStaffOrders();
+  });
+
+  elements.clearCartButton.addEventListener("click", () => {
+    state.cart = [];
+    renderCart();
+    setStatus("購物車已清空。");
+  });
+
+  elements.orderForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitOrder();
+  });
+
+  elements.menuForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveMenuItemFromForm();
+  });
+
+  elements.resetMenuFormButton.addEventListener("click", () => {
+    resetMenuForm();
+    setStatus("餐點表單已清除。");
+  });
+}
+
+async function bootstrapSupabase() {
+  const response = await fetch("/api/public-config");
+  const config = await response.json();
+
+  if (!response.ok) {
+    throw new Error(config.error || "無法取得 Supabase 公開設定。");
+  }
+
+  state.supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
+
+  const sessionResult = await state.supabase.auth.getSession();
+  state.session = sessionResult.data.session;
+
+  if (state.session?.user) {
+    state.profile = await loadProfile(state.session.user.id);
+  }
+
+  state.supabase.auth.onAuthStateChange(async (_event, session) => {
+    state.session = session;
+    state.profile = session?.user ? await loadProfile(session.user.id) : null;
+    await refreshSecureData();
+    renderAuthState();
+    renderAccess();
+  });
+
+  await loadPublicData();
+  await refreshSecureData();
+  renderAuthState();
+  renderAccess();
+  subscribeRealtime();
+  renderAll();
+}
+
+async function loadPublicData() {
+  const { data, error } = await state.supabase
+    .from("menu_items")
+    .select("*")
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  state.menuItems = Array.isArray(data) ? data : [];
+}
+
+async function refreshSecureData() {
+  if (hasStaffAccess()) {
+    await loadOrders();
+  } else {
+    state.orders = [];
+  }
+
+  renderAll();
+}
+
+async function loadOrders() {
+  const { data, error } = await state.supabase
+    .from("orders")
+    .select(`
+      id,
+      order_code,
+      customer_name,
+      phone,
+      address,
+      note,
+      status,
+      total,
+      created_at,
+      order_items (
+        id,
+        item_name,
+        price,
+        quantity,
+        subtotal
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  state.orders = Array.isArray(data) ? data : [];
+}
+
+async function loadProfile(userId) {
+  const { data, error } = await state.supabase
+    .from("profiles")
+    .select("id, full_name, role")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error(error);
+    setStatus("登入成功，但尚未找到角色資料，請確認 profiles 表。");
+    return null;
+  }
+
+  return data;
+}
+
+function subscribeRealtime() {
+  unsubscribeRealtime();
+
+  const menuChannel = state.supabase
+    .channel("public:menu_items")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "menu_items" },
+      async () => {
+        await loadPublicData();
+        renderAll();
+        setStatus("菜單資料已同步更新。");
+      }
+    )
+    .subscribe();
+
+  state.subscriptions.push(menuChannel);
+
+  const ordersChannel = state.supabase
+    .channel("public:orders")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "orders" },
+      async () => {
+        if (!hasStaffAccess()) {
+          return;
+        }
+        await loadOrders();
+        renderAll();
+        setStatus("訂單資料已同步更新。");
+      }
+    )
+    .subscribe();
+
+  state.subscriptions.push(ordersChannel);
+}
+
+function unsubscribeRealtime() {
+  state.subscriptions.forEach((channel) => {
+    state.supabase.removeChannel(channel);
+  });
+  state.subscriptions = [];
+}
+
+async function signIn() {
+  const email = elements.authEmailInput.value.trim();
+  const password = elements.authPasswordInput.value.trim();
+
+  if (!email || !password) {
+    setStatus("請輸入 Email 與密碼。");
+    return;
+  }
+
+  const { error } = await state.supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    setStatus(`登入失敗：${error.message}`);
+    return;
+  }
+
+  setStatus("登入成功，正在載入權限與資料。");
+}
+
+async function signOut() {
+  const { error } = await state.supabase.auth.signOut();
+  if (error) {
+    setStatus(`登出失敗：${error.message}`);
+    return;
+  }
+
+  state.profile = null;
+  state.orders = [];
+  renderAll();
+  renderAuthState();
+  renderAccess();
+  setStatus("已登出。");
+}
+
+function renderAuthState() {
+  if (!state.session?.user) {
+    elements.authSessionInfo.textContent = "尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。";
+    return;
+  }
+
+  const roleLabel = state.profile?.role || "未設定角色";
+  const nameLabel = state.profile?.full_name || state.session.user.email;
+  elements.authSessionInfo.textContent = `已登入：${nameLabel} / ${roleLabel}`;
+}
+
+function renderAccess() {
+  const staffAllowed = hasStaffAccess();
+  const adminAllowed = hasAdminAccess();
+
+  elements.staffAccessGate.classList.toggle("hidden", staffAllowed);
+  elements.staffContent.classList.toggle("hidden", !staffAllowed);
+  elements.adminAccessGate.classList.toggle("hidden", adminAllowed);
+  elements.adminContent.classList.toggle("hidden", !adminAllowed);
+
+  if (!staffAllowed) {
+    elements.staffAccessGate.textContent = "請先登入 staff 或 admin 帳號，才能查看訂單總覽。";
+  }
+
+  if (!adminAllowed) {
+    elements.adminAccessGate.textContent = "請先登入 admin 帳號，才能管理菜單。";
+  }
+}
+
+function hasStaffAccess() {
+  return ["staff", "admin"].includes(state.profile?.role);
+}
+
+function hasAdminAccess() {
+  return state.profile?.role === "admin";
+}
+
+function switchView(viewName) {
+  state.currentView = viewName;
+  elements.roleTabs.forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.view === viewName);
+  });
+
+  Object.entries(elements.views).forEach(([name, view]) => {
+    view.classList.toggle("active", name === viewName);
+  });
+}
+
+function renderAll() {
+  renderHeroStats();
+  renderCategoryFilters();
+  renderCustomerMenu();
+  renderCart();
+  renderStaffSummary();
+  renderStaffOrders();
+  renderAdminMenu();
+}
+
+function renderHeroStats() {
+  const pendingCount = state.orders.filter((order) => order.status !== "completed").length;
+  elements.heroMenuCount.textContent = String(state.menuItems.length);
+  elements.heroOrderCount.textContent = String(state.orders.length);
+  elements.heroPendingCount.textContent = String(pendingCount);
+}
+
+function renderCategoryFilters() {
+  const availableItems = state.menuItems.filter((item) => item.available);
+  const categories = [...new Set(availableItems.map((item) => item.category))];
+  const options = ["all", ...categories];
+
+  elements.categoryFilter.innerHTML = "";
+  options.forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `pill${state.customerFilters.category === category ? " active" : ""}`;
+    button.textContent = category === "all" ? "全部分類" : category;
+    button.addEventListener("click", () => {
+      state.customerFilters.category = category;
+      renderCategoryFilters();
+      renderCustomerMenu();
+    });
+    elements.categoryFilter.appendChild(button);
+  });
+}
+
+function renderCustomerMenu() {
+  const menuItems = getFilteredMenuItems();
+  elements.customerMenuList.innerHTML = "";
+
+  if (!menuItems.length) {
+    elements.customerMenuList.appendChild(createEmptyState("目前找不到符合條件的餐點。"));
+    return;
+  }
+
+  menuItems.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = `menu-card${item.available ? "" : " unavailable"}`;
+    card.innerHTML = `
+      <div class="menu-card-header">
+        <div>
+          <span class="badge">${escapeHtml(item.category)}</span>
+          <h3>${escapeHtml(item.name)}</h3>
+        </div>
+        <strong class="menu-price">${formatCurrency(item.price)}</strong>
+      </div>
+      <p>${escapeHtml(item.description || "尚未提供餐點描述。")}</p>
+      <div class="menu-card-footer">
+        <span>${item.available ? "可供應" : "暫停供應"}</span>
+        <button class="primary-button" type="button" ${item.available ? "" : "disabled"}>加入購物車</button>
+      </div>
+    `;
+
+    card.querySelector("button").addEventListener("click", () => addToCart(item.id));
+    elements.customerMenuList.appendChild(card);
+  });
+}
+
+function getFilteredMenuItems() {
+  return state.menuItems.filter((item) => {
+    const matchAvailability = item.available;
+    const matchQuery =
+      !state.customerFilters.query ||
+      item.name.toLowerCase().includes(state.customerFilters.query) ||
+      item.category.toLowerCase().includes(state.customerFilters.query) ||
+      (item.description || "").toLowerCase().includes(state.customerFilters.query);
+    const matchCategory =
+      state.customerFilters.category === "all" || item.category === state.customerFilters.category;
+
+    return matchAvailability && matchQuery && matchCategory;
+  });
+}
+
+function addToCart(menuItemId) {
+  const menuItem = state.menuItems.find((item) => item.id === menuItemId && item.available);
+  if (!menuItem) {
+    setStatus("此餐點目前無法加入購物車。");
+    return;
+  }
+
+  const existing = state.cart.find((item) => item.id === menuItemId);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    state.cart.push({
+      id: menuItem.id,
+      name: menuItem.name,
+      price: menuItem.price,
+      quantity: 1,
+    });
+  }
+
+  renderCart();
+  setStatus(`已將「${menuItem.name}」加入購物車。`);
+}
+
+function renderCart() {
+  elements.cartItems.innerHTML = "";
+
+  if (!state.cart.length) {
+    elements.cartItems.appendChild(createEmptyState("購物車目前沒有餐點。"));
+    elements.cartTotalPrice.textContent = formatCurrency(0);
+    return;
+  }
+
+  state.cart.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "cart-item";
+    row.innerHTML = `
+      <div class="cart-item-meta">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span>${formatCurrency(item.price)} / 份</span>
+      </div>
+      <div class="quantity-controls">
+        <button class="quantity-button" type="button">-</button>
+        <strong>${item.quantity}</strong>
+        <button class="quantity-button" type="button">+</button>
+        <button class="text-button" type="button">移除</button>
+      </div>
+    `;
+
+    const [minusButton, plusButton, removeButton] = row.querySelectorAll("button");
+    minusButton.addEventListener("click", () => updateCartQuantity(item.id, item.quantity - 1));
+    plusButton.addEventListener("click", () => updateCartQuantity(item.id, item.quantity + 1));
+    removeButton.addEventListener("click", () => removeFromCart(item.id));
+    elements.cartItems.appendChild(row);
+  });
+
+  elements.cartTotalPrice.textContent = formatCurrency(getCartTotal());
+}
+
+function updateCartQuantity(itemId, nextQuantity) {
+  if (nextQuantity <= 0) {
+    removeFromCart(itemId);
+    return;
+  }
+
+  const cartItem = state.cart.find((item) => item.id === itemId);
+  if (!cartItem) {
+    return;
+  }
+
+  cartItem.quantity = nextQuantity;
+  renderCart();
+}
+
+function removeFromCart(itemId) {
+  state.cart = state.cart.filter((item) => item.id !== itemId);
+  renderCart();
+}
+
+function getCartTotal() {
+  return state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+async function submitOrder() {
+  if (!state.cart.length) {
+    setStatus("請先加入至少一項餐點再送出訂單。");
+    return;
+  }
+
+  const payload = {
+    customerName: elements.customerNameInput.value.trim(),
+    phone: elements.customerPhoneInput.value.trim(),
+    address: elements.customerAddressInput.value.trim(),
+    note: elements.customerNoteInput.value.trim(),
+    items: state.cart.map((item) => ({
+      menuItemId: item.id,
+      quantity: item.quantity,
+    })),
+  };
+
+  if (!payload.customerName || !payload.phone || !payload.address) {
+    setStatus("請完整填寫姓名、電話與地址。");
+    return;
+  }
+
+  const response = await fetch("/api/create-order", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    setStatus(`建立訂單失敗：${result.error || "未知錯誤"}`);
+    return;
+  }
+
+  state.cart = [];
+  elements.orderForm.reset();
+  renderCart();
+  switchView("customer");
+  setStatus(`訂單 ${result.orderCode} 已送出。`);
+}
+
+function renderStaffSummary() {
+  elements.staffSummaryCards.innerHTML = "";
+
+  if (!hasStaffAccess()) {
+    return;
+  }
+
+  const summary = [
+    { label: "全部訂單", value: state.orders.length },
+    { label: "新訂單", value: state.orders.filter((order) => order.status === "new").length },
+    {
+      label: "製作中 / 外送中",
+      value: state.orders.filter((order) => ["preparing", "delivering"].includes(order.status)).length,
+    },
+    { label: "已完成", value: state.orders.filter((order) => order.status === "completed").length },
+  ];
+
+  summary.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "summary-card";
+    card.innerHTML = `<span>${item.label}</span><strong>${item.value}</strong>`;
+    elements.staffSummaryCards.appendChild(card);
+  });
+}
+
+function renderStaffOrders() {
+  elements.staffOrderList.innerHTML = "";
+
+  if (!hasStaffAccess()) {
+    return;
+  }
+
+  const filteredOrders = state.orders.filter((order) => {
+    const query = state.staffFilters.query;
+    const haystack = `${order.order_code} ${order.customer_name} ${order.phone} ${order.address}`.toLowerCase();
+    const matchQuery = !query || haystack.includes(query);
+    const matchStatus = state.staffFilters.status === "all" || order.status === state.staffFilters.status;
+    return matchQuery && matchStatus;
+  });
+
+  if (!filteredOrders.length) {
+    elements.staffOrderList.appendChild(createEmptyState("目前沒有符合條件的訂單。"));
+    return;
+  }
+
+  filteredOrders.forEach((order) => {
+    const itemsHtml = (order.order_items || [])
+      .map((item) => `${escapeHtml(item.item_name)} x ${item.quantity} = ${formatCurrency(item.subtotal)}`)
+      .join("<br>");
+
+    const card = document.createElement("article");
+    card.className = "order-card";
+    card.innerHTML = `
+      <div class="order-card-header">
+        <div>
+          <span class="status-badge" data-status="${order.status}">${STATUS_META[order.status]}</span>
+          <h3>${escapeHtml(order.order_code)}</h3>
+        </div>
+        <strong class="order-total">${formatCurrency(order.total)}</strong>
+      </div>
+      <div class="order-meta">
+        <div><strong>時間：</strong>${formatDateTime(order.created_at)}</div>
+        <div><strong>姓名：</strong>${escapeHtml(order.customer_name)}</div>
+        <div><strong>電話：</strong>${escapeHtml(order.phone)}</div>
+        <div><strong>地址：</strong>${escapeHtml(order.address)}</div>
+        <div><strong>備註：</strong>${escapeHtml(order.note || "無")}</div>
+      </div>
+      <div class="order-items">${itemsHtml || "沒有明細"}</div>
+      <div class="order-actions">
+        ${renderStatusButtons(order.status)}
+      </div>
+    `;
+
+    card.querySelectorAll("[data-next-status]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        await updateOrderStatus(order.id, button.dataset.nextStatus);
+      });
+    });
+
+    elements.staffOrderList.appendChild(card);
+  });
+}
+
+function renderStatusButtons(currentStatus) {
+  return Object.entries(STATUS_META)
+    .map(([status, label]) => {
+      const disabled = currentStatus === status ? "disabled" : "";
+      return `<button class="ghost-button" type="button" data-next-status="${status}" ${disabled}>${label}</button>`;
+    })
+    .join("");
+}
+
+async function updateOrderStatus(orderId, nextStatus) {
+  if (!hasStaffAccess()) {
+    setStatus("你沒有更新訂單狀態的權限。");
+    return;
+  }
+
+  const { error } = await state.supabase
+    .from("orders")
+    .update({ status: nextStatus })
+    .eq("id", orderId);
+
+  if (error) {
+    setStatus(`更新訂單狀態失敗：${error.message}`);
+    return;
+  }
+
+  setStatus(`訂單狀態已更新為「${STATUS_META[nextStatus]}」。`);
+}
+
+async function saveMenuItemFromForm() {
+  if (!hasAdminAccess()) {
+    setStatus("你沒有管理菜單的權限。");
+    return;
+  }
+
+  const menuItemId = elements.menuItemIdInput.value;
+  const payload = {
+    name: elements.menuNameInput.value.trim(),
+    category: elements.menuCategoryInput.value.trim(),
+    price: Number(elements.menuPriceInput.value),
+    sort_order: elements.menuSortOrderInput.value ? Number(elements.menuSortOrderInput.value) : null,
+    description: elements.menuDescriptionInput.value.trim(),
+    available: elements.menuAvailableInput.checked,
+  };
+
+  if (!payload.name || !payload.category || Number.isNaN(payload.price) || payload.price < 0) {
+    setStatus("請完整填寫餐點名稱、分類與正確價格。");
+    return;
+  }
+
+  let error = null;
+  if (menuItemId) {
+    ({ error } = await state.supabase.from("menu_items").update(payload).eq("id", menuItemId));
+  } else {
+    ({ error } = await state.supabase.from("menu_items").insert(payload));
+  }
+
+  if (error) {
+    setStatus(`儲存餐點失敗：${error.message}`);
+    return;
+  }
+
+  resetMenuForm();
+  setStatus(menuItemId ? "餐點已更新。" : "餐點已新增。");
+}
+
+function resetMenuForm() {
+  elements.menuForm.reset();
+  elements.menuItemIdInput.value = "";
+  elements.menuAvailableInput.checked = true;
+}
+
+function renderAdminMenu() {
+  elements.adminMenuList.innerHTML = "";
+
+  if (!hasAdminAccess()) {
+    return;
+  }
+
+  if (!state.menuItems.length) {
+    elements.adminMenuList.appendChild(createEmptyState("目前沒有餐點，先新增第一個品項。"));
+    return;
+  }
+
+  state.menuItems.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "admin-menu-card";
+    card.innerHTML = `
+      <div class="admin-menu-header">
+        <div>
+          <span class="badge">${escapeHtml(item.category)}</span>
+          <h3>${escapeHtml(item.name)}</h3>
+        </div>
+        <strong class="menu-price">${formatCurrency(item.price)}</strong>
+      </div>
+      <p>${escapeHtml(item.description || "尚未提供餐點描述。")}</p>
+      <div class="admin-menu-footer">
+        <span>${item.available ? "上架中" : "已下架"} / 排序 ${item.sort_order ?? "-"}</span>
+        <div class="admin-menu-actions">
+          <button class="ghost-button" type="button" data-action="edit">編輯</button>
+          <button class="ghost-button danger-button" type="button" data-action="delete">刪除</button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector('[data-action="edit"]').addEventListener("click", () => populateMenuForm(item.id));
+    card.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+      await deleteMenuItem(item.id);
+    });
+    elements.adminMenuList.appendChild(card);
+  });
+}
+
+function populateMenuForm(itemId) {
+  const item = state.menuItems.find((entry) => entry.id === itemId);
+  if (!item) {
+    return;
+  }
+
+  elements.menuItemIdInput.value = item.id;
+  elements.menuNameInput.value = item.name;
+  elements.menuCategoryInput.value = item.category;
+  elements.menuPriceInput.value = String(item.price);
+  elements.menuSortOrderInput.value = item.sort_order ?? "";
+  elements.menuDescriptionInput.value = item.description || "";
+  elements.menuAvailableInput.checked = item.available;
+  switchView("admin");
+  setStatus(`正在編輯餐點「${item.name}」。`);
+}
+
+async function deleteMenuItem(itemId) {
+  if (!hasAdminAccess()) {
+    setStatus("你沒有刪除菜單的權限。");
+    return;
+  }
+
+  const item = state.menuItems.find((entry) => entry.id === itemId);
+  const { error } = await state.supabase.from("menu_items").delete().eq("id", itemId);
+
+  if (error) {
+    setStatus(`刪除餐點失敗：${error.message}`);
+    return;
+  }
+
+  state.cart = state.cart.filter((cartItem) => cartItem.id !== itemId);
+  renderCart();
+  setStatus(item ? `已刪除餐點「${item.name}」。` : "餐點已刪除。");
+}
+
+function createEmptyState(message) {
+  const div = document.createElement("div");
+  div.className = "empty-state";
+  div.textContent = message;
+  return div;
+}
+
+function setStatus(message) {
+  elements.statusText.textContent = message;
+}
+
+function formatCurrency(amount) {
+  return `NT$ ${Number(amount || 0).toLocaleString("zh-TW")}`;
+}
+
+function formatDateTime(isoString) {
+  const date = new Date(isoString);
+  return new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
