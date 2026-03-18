@@ -10,7 +10,7 @@
   <main class="page">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Supabase + Vercel Ordering Suite</p>
+        <p class="eyebrow" id="heroTimestamp">2026/03/18 14:30</p>
         <h1>QuickBite 線上點餐系統</h1>
         <div class="hero-stats">
           <article>
@@ -54,6 +54,9 @@
             <button id="signOutButton" class="secondary-button" type="button">登出</button>
           </div>
         </form>
+        <div class="auth-logout-box hidden" id="authLogoutBox">
+          <button id="signOutCardButton" class="secondary-button full-width" type="button">登出</button>
+        </div>
         <div class="auth-mini hidden" id="authMiniBar">
           <span id="authMiniText">已登入</span>
           <button id="signOutMiniButton" class="secondary-button" type="button">登出</button>
@@ -128,6 +131,30 @@
 
             <button class="primary-button full-width" type="submit">送出訂單</button>
           </form>
+
+          <div class="customer-order-status hidden" id="customerOrderStatus">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-tag">Tracker</p>
+                <h3>目前訂單狀態</h3>
+              </div>
+            </div>
+            <div class="tracker-card">
+              <div class="tracker-row">
+                <span>訂單編號</span>
+                <strong id="customerOrderCode">-</strong>
+              </div>
+              <div class="tracker-row">
+                <span>狀態</span>
+                <strong id="customerOrderState">-</strong>
+              </div>
+              <div class="tracker-row">
+                <span>建立時間</span>
+                <strong id="customerOrderCreatedAt">-</strong>
+              </div>
+              <button id="refreshCustomerOrderButton" class="ghost-button full-width" type="button">更新狀態</button>
+            </div>
+          </div>
         </aside>
       </div>
     </section>

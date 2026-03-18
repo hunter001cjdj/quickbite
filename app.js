@@ -7,6 +7,8 @@ const STATUS_META = {
   completed: "已完成",
 };
 
+const CUSTOMER_ORDER_STORAGE_KEY = "quickbite-last-order";
+
 const state = {
   supabase: null,
   session: null,
@@ -31,15 +33,18 @@ const elements = {
   heroMenuCount: document.getElementById("heroMenuCount"),
   heroOrderCount: document.getElementById("heroOrderCount"),
   heroPendingCount: document.getElementById("heroPendingCount"),
+  heroTimestamp: document.getElementById("heroTimestamp"),
   authSessionInfo: document.getElementById("authSessionInfo"),
   authCard: document.getElementById("authCard"),
   authForm: document.getElementById("authForm"),
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
   signOutButton: document.getElementById("signOutButton"),
+  signOutCardButton: document.getElementById("signOutCardButton"),
   signOutMiniButton: document.getElementById("signOutMiniButton"),
   authMiniBar: document.getElementById("authMiniBar"),
   authMiniText: document.getElementById("authMiniText"),
+  authLogoutBox: document.getElementById("authLogoutBox"),
   roleTabs: [...document.querySelectorAll(".role-tab")],
   views: {
     customer: document.getElementById("customerView"),
@@ -61,6 +66,11 @@ const elements = {
   customerPhoneInput: document.getElementById("customerPhoneInput"),
   customerAddressInput: document.getElementById("customerAddressInput"),
   customerNoteInput: document.getElementById("customerNoteInput"),
+  customerOrderStatus: document.getElementById("customerOrderStatus"),
+  customerOrderCode: document.getElementById("customerOrderCode"),
+  customerOrderState: document.getElementById("customerOrderState"),
+  customerOrderCreatedAt: document.getElementById("customerOrderCreatedAt"),
+  refreshCustomerOrderButton: document.getElementById("refreshCustomerOrderButton"),
   orderSearchInput: document.getElementById("orderSearchInput"),
   orderStatusFilter: document.getElementById("orderStatusFilter"),
   staffSummaryCards: document.getElementById("staffSummaryCards"),
@@ -84,6 +94,7 @@ initializeApp().catch((error) => {
 
 async function initializeApp() {
   bindEvents();
+  startClock();
   await bootstrapSupabase();
   setStatus("系統正常運行中");
 }
@@ -99,6 +110,10 @@ function bindEvents() {
   });
 
   elements.signOutButton.addEventListener("click", async () => {
+    await signOut();
+  });
+
+  elements.signOutCardButton.addEventListener("click", async () => {
     await signOut();
   });
 
@@ -141,6 +156,10 @@ function bindEvents() {
     resetMenuForm();
     setStatus("餐點表單已清除。");
   });
+
+  elements.refreshCustomerOrderButton.addEventListener("click", async () => {
+    await refreshCustomerOrderStatus();
+  });
 }
 
 async function bootstrapSupabase() {
@@ -175,6 +194,7 @@ async function bootstrapSupabase() {
 
   await loadPublicData();
   await refreshSecureData();
+  await refreshCustomerOrderStatus();
   renderAuthState();
   renderAccess();
   subscribeRealtime();
@@ -345,6 +365,7 @@ async function signOut() {
 function renderAuthState() {
   if (!state.session?.user) {
     elements.authSessionInfo.textContent = "尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。";
+    elements.authMiniText.textContent = "未登入";
     renderAuthLayout();
     return;
   }
@@ -603,6 +624,8 @@ async function submitOrder() {
     renderCart();
     switchView("customer");
     setStatus(`訂單 ${result.orderCode} 已送出。`);
+    saveCustomerOrder(result.orderCode, payload.phone);
+    await refreshCustomerOrderStatus();
     window.alert("點餐成功！");
   } catch (error) {
     console.error(error);
@@ -697,7 +720,8 @@ function renderStatusButtons(currentStatus) {
   return Object.entries(STATUS_META)
     .map(([status, label]) => {
       const disabled = currentStatus === status ? "disabled" : "";
-      return `<button class="ghost-button" type="button" data-next-status="${status}" ${disabled}>${label}</button>`;
+      const activeClass = currentStatus === status ? " is-active" : "";
+      return `<button class="ghost-button${activeClass}" type="button" data-next-status="${status}" ${disabled}>${label}</button>`;
     })
     .join("");
 }
@@ -860,6 +884,80 @@ function renderAuthLayout() {
   const showCompactAuth = Boolean(state.session?.user) && ["staff", "admin"].includes(state.currentView);
   elements.authCard.classList.toggle("compact-auth", showCompactAuth);
   elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
+  elements.authForm.classList.toggle("hidden", Boolean(state.session?.user));
+  elements.authLogoutBox.classList.toggle("hidden", !state.session?.user || showCompactAuth);
+}
+
+function startClock() {
+  updateClock();
+  window.setInterval(updateClock, 1000);
+}
+
+function updateClock() {
+  const now = new Date();
+  const date = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("/");
+  const time = [
+    String(now.getHours()).padStart(2, "0"),
+    String(now.getMinutes()).padStart(2, "0"),
+    String(now.getSeconds()).padStart(2, "0"),
+  ].join(":");
+  elements.heroTimestamp.textContent = `${date} ${time}`;
+}
+
+function saveCustomerOrder(orderCode, phone) {
+  localStorage.setItem(
+    CUSTOMER_ORDER_STORAGE_KEY,
+    JSON.stringify({
+      orderCode,
+      phone,
+    })
+  );
+}
+
+function getSavedCustomerOrder() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOMER_ORDER_STORAGE_KEY) || "null");
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function refreshCustomerOrderStatus() {
+  const savedOrder = getSavedCustomerOrder();
+  if (!savedOrder?.orderCode || !savedOrder?.phone) {
+    elements.customerOrderStatus.classList.add("hidden");
+    return;
+  }
+
+  try {
+    const query = new URLSearchParams({
+      orderCode: savedOrder.orderCode,
+      phone: savedOrder.phone,
+    });
+    const response = await fetch(`/api/order-status?${query.toString()}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "無法取得訂單狀態");
+    }
+
+    elements.customerOrderStatus.classList.remove("hidden");
+    elements.customerOrderCode.textContent = result.order.order_code;
+    elements.customerOrderState.textContent = STATUS_META[result.order.status] || result.order.status;
+    elements.customerOrderCreatedAt.textContent = formatDateTime(result.order.created_at);
+  } catch (error) {
+    console.error(error);
+    elements.customerOrderStatus.classList.remove("hidden");
+    elements.customerOrderCode.textContent = savedOrder.orderCode;
+    elements.customerOrderState.textContent = "狀態讀取失敗";
+    elements.customerOrderCreatedAt.textContent = "-";
+    setDatabaseError();
+  }
 }
 
 function formatCurrency(amount) {

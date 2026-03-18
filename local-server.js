@@ -7,6 +7,7 @@ loadEnvFile(path.join(__dirname, ".env.local"));
 
 const publicConfigHandler = require("./api/public-config");
 const createOrderHandler = require("./api/create-order");
+const orderStatusHandler = require("./api/order-status");
 
 const PORT = Number(process.env.PORT || 3000);
 const MIME_TYPES = {
@@ -33,6 +34,11 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const apiReq = createApiRequest(req, requestUrl, body);
       await createOrderHandler(apiReq, createApiResponse(res));
+      return;
+    }
+
+    if (requestUrl.pathname === "/api/order-status") {
+      await orderStatusHandler(createApiRequest(req, requestUrl), createApiResponse(res));
       return;
     }
 

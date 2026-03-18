@@ -1,14 +1,14 @@
 :root {
-  --panel: rgba(255, 250, 244, 0.88);
-  --panel-strong: #fffaf4;
-  --border: rgba(90, 54, 26, 0.12);
-  --text: #2f241c;
-  --muted: #776456;
-  --accent: #c96d38;
-  --accent-deep: #8f3f1a;
-  --success: #287b52;
+  --panel: rgba(255, 248, 240, 0.9);
+  --panel-strong: #fff9f2;
+  --border: rgba(150, 78, 19, 0.14);
+  --text: #372113;
+  --muted: #8b6a56;
+  --accent: #eb7d2f;
+  --accent-deep: #b95316;
+  --success: #cf6b1a;
   --danger: #a64533;
-  --shadow: 0 20px 50px rgba(81, 49, 24, 0.12);
+  --shadow: 0 20px 50px rgba(103, 53, 17, 0.16);
 }
 
 * {
@@ -21,9 +21,9 @@ body {
   color: var(--text);
   font-family: "Noto Sans TC", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(201, 109, 56, 0.16), transparent 24%),
-    radial-gradient(circle at top right, rgba(40, 123, 82, 0.14), transparent 20%),
-    linear-gradient(160deg, #f7f0e7 0%, #f3e8da 52%, #efe2d0 100%);
+    radial-gradient(circle at top left, rgba(235, 125, 47, 0.22), transparent 24%),
+    radial-gradient(circle at top right, rgba(255, 170, 92, 0.18), transparent 22%),
+    linear-gradient(160deg, #fff2e6 0%, #f6e3d2 52%, #efd2b8 100%);
 }
 
 .page {
@@ -129,6 +129,10 @@ body {
   border: 1px solid rgba(90, 54, 26, 0.08);
 }
 
+.auth-logout-box {
+  margin-top: 12px;
+}
+
 .auth-mini {
   display: flex;
   align-items: center;
@@ -148,8 +152,8 @@ body {
 }
 
 .auth-card.compact-auth .panel-heading,
-.auth-card.compact-auth .auth-session,
-.auth-card.compact-auth .auth-form {
+.auth-card.compact-auth .auth-form,
+.auth-card.compact-auth .auth-logout-box {
   display: none;
 }
 
@@ -403,7 +407,7 @@ textarea {
 }
 
 .status-badge[data-status="completed"] {
-  background: rgba(40, 123, 82, 0.16);
+  background: rgba(235, 125, 47, 0.18);
   color: var(--success);
 }
 
@@ -508,6 +512,40 @@ textarea {
   padding: 14px;
   border-radius: 18px;
   background: rgba(244, 237, 226, 0.7);
+}
+
+.ghost-button.is-active {
+  color: #fff7f1;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-color: transparent;
+}
+
+.customer-order-status {
+  margin-top: 16px;
+}
+
+.tracker-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(150, 78, 19, 0.08);
+}
+
+.tracker-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(150, 78, 19, 0.14);
+}
+
+.tracker-row:last-of-type {
+  border-bottom: 0;
+}
+
+.tracker-row span {
+  color: var(--muted);
 }
 
 .staff-summary {
