@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 管理者後台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="admin-dashboard">
+  <main class="shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <h1>QuickBite 管理者後台</h1>
+        <p class="hero-copy">管理菜單品項、價格與供應狀態，並同步檢視目前資料庫內容。</p>
+      </div>
+      <div class="hero-actions">
+        <div class="session-pill">
+          <span id="adminSessionText">驗證中...</span>
+          <button id="adminSignOutButton" class="button secondary" type="button">登出</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout two-column">
+      <article class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Menu Editor</p>
+            <h2>新增 / 編輯餐點</h2>
+          </div>
+        </div>
+
+        <form id="menuForm" class="stack">
+          <input id="menuItemIdInput" type="hidden">
+          <label class="field">
+            <span>品項名稱</span>
+            <input id="menuNameInput" type="text" placeholder="例如：雞腿便當" required>
+          </label>
+          <label class="field">
+            <span>分類</span>
+            <input id="menuCategoryInput" type="text" placeholder="例如：便當、飲料、小點" required>
+          </label>
+          <label class="field">
+            <span>價格</span>
+            <input id="menuPriceInput" type="number" min="0" step="1" placeholder="120" required>
+          </label>
+          <label class="field">
+            <span>排序</span>
+            <input id="menuSortOrderInput" type="number" min="0" step="1" placeholder="1">
+          </label>
+          <label class="field">
+            <span>描述</span>
+            <textarea id="menuDescriptionInput" rows="3" placeholder="例如：附三樣配菜與白飯"></textarea>
+          </label>
+          <label class="checkbox">
+            <input id="menuAvailableInput" type="checkbox" checked>
+            <span>目前供應中</span>
+          </label>
+          <div class="button-row">
+            <button class="button primary" type="submit">儲存餐點</button>
+            <button id="resetMenuFormButton" class="button ghost" type="button">清空表單</button>
+          </div>
+        </form>
+
+        <div id="adminStatusText" class="status-box">正在讀取菜單資料。</div>
+      </article>
+
+      <article class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Current Menu</p>
+            <h2>菜單列表</h2>
+          </div>
+        </div>
+
+        <div id="adminMenuList" class="admin-menu-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="/scripts/admin-page.js"></script>
+</body>
+</html>

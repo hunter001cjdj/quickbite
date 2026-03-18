@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 後台登入</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="backoffice-login">
+  <main class="shell narrow">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <h1>QuickBite 後台登入</h1>
+        <p class="hero-copy">員工與管理者在這裡登入。登入成功後會自動導向對應後台。</p>
+      </div>
+      <div class="hero-actions">
+        <a class="button ghost" href="/index.html">返回顧客首頁</a>
+      </div>
+    </section>
+
+    <section class="panel auth-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Backoffice Auth</p>
+          <h2>員工 / 管理者登入</h2>
+        </div>
+      </div>
+
+      <form id="backofficeLoginForm" class="stack">
+        <label class="field">
+          <span>Email</span>
+          <input id="loginEmail" type="email" placeholder="staff@example.com" required>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="loginPassword" type="password" placeholder="至少 6 碼" required>
+        </label>
+        <button class="button primary full-width" type="submit">登入後台</button>
+      </form>
+
+      <div id="loginStatusText" class="status-box">請輸入後台帳號密碼。</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="/scripts/login-page.js"></script>
+</body>
+</html>

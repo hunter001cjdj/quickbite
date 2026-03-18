@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 員工總覽</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="staff-dashboard">
+  <main class="shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <h1>QuickBite 員工總覽</h1>
+        <p class="hero-copy">查看全部訂單、切換狀態、刪除取消訂單，並即時同步最新內容。</p>
+      </div>
+      <div class="hero-actions">
+        <div class="session-pill">
+          <span id="staffSessionText">驗證中...</span>
+          <button id="staffSignOutButton" class="button secondary" type="button">登出</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <label class="field grow">
+          <span>搜尋訂單</span>
+          <input id="staffOrderSearchInput" type="search" placeholder="訂單編號、姓名、電話">
+        </label>
+        <label class="field narrow">
+          <span>狀態篩選</span>
+          <select id="staffOrderStatusFilter">
+            <option value="all">全部狀態</option>
+            <option value="new">新訂單</option>
+            <option value="preparing">製作中</option>
+            <option value="delivering">外送中</option>
+            <option value="completed">已完成</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="staffStatusText" class="status-box">正在載入訂單資料。</div>
+      <div id="staffSummaryCards" class="metric-grid"></div>
+      <div id="staffOrderList" class="order-list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="/scripts/staff-page.js"></script>
+</body>
+</html>

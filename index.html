@@ -3,151 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuickBite 線上點餐系統</title>
+  <title>QuickBite 顧客入口</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <main class="page">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow" id="heroTimestamp">2026/03/18 14:30</p>
-        <h1>QuickBite 線上點餐系統</h1>
-        <div class="hero-stats hidden">
-          <article>
-            <span>菜單品項</span>
-            <strong id="heroMenuCount">0</strong>
-          </article>
-          <article>
-            <span>全部訂單</span>
-            <strong id="heroOrderCount">0</strong>
-          </article>
-          <article>
-            <span>待處理</span>
-            <strong id="heroPendingCount">0</strong>
-          </article>
-        </div>
+<body data-page="customer">
+  <main class="customer-home">
+    <section class="portal-landing">
+      <div class="space-backdrop"></div>
+      <div class="earth-glow"></div>
+      <div class="earth-orbit"></div>
+
+      <div class="landing-topbar">
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <a class="button ghost" href="/backoffice-login.html">員工 / 管理者入口</a>
       </div>
 
-      <aside class="auth-card panel" id="authCard">
-        <div class="panel-heading compact">
-          <div>
-            <p class="section-tag">Auth</p>
-            <h2>員工 / 管理者登入入口</h2>
-          </div>
-        </div>
+      <div class="landing-center">
+        <div class="login-card">
+          <p class="eyebrow">Customer Portal</p>
+          <h1>QuickBite 顧客登入 / 註冊</h1>
+          <p class="hero-copy">先登入或建立顧客帳號，再開始點餐與追蹤訂單狀態。</p>
 
-        <div class="auth-session" id="authSessionInfo">
-          尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。
-        </div>
-        <div class="button-row auth-entry-row" id="authEntryRow">
-          <button id="openLoginEntryButton" class="primary-button full-width" type="button">前往登入</button>
-        </div>
-        <div class="auth-register-panel" id="authRegisterPanel">
-          <div class="auth-register-head">
-            <strong>顧客註冊</strong>
-            <button id="toggleCustomerRegisterButton" class="ghost-button" type="button">展開註冊</button>
+          <div class="auth-tabs">
+            <button id="showCustomerLoginButton" class="button ghost is-active" type="button">顧客登入</button>
+            <button id="showCustomerSignupButton" class="button ghost" type="button">顧客註冊</button>
           </div>
-          <form id="customerRegisterForm" class="auth-form hidden">
-            <label class="field">
-              <span>姓名</span>
-              <input id="customerRegisterNameInput" type="text" placeholder="王小明" required>
-            </label>
-            <label class="field">
-              <span>電話</span>
-              <input id="customerRegisterPhoneInput" type="tel" placeholder="0912-345-678" required>
-            </label>
+
+          <form id="customerLoginForm" class="stack">
             <label class="field">
               <span>Email</span>
-              <input id="customerRegisterEmailInput" type="email" placeholder="customer@example.com" required>
-            </label>
-            <label class="field">
-              <span>密碼</span>
-              <input id="customerRegisterPasswordInput" type="password" placeholder="至少 6 碼" required>
-            </label>
-            <label class="field">
-              <span>確認密碼</span>
-              <input id="customerRegisterConfirmPasswordInput" type="password" placeholder="再次輸入密碼" required>
-            </label>
-            <button id="customerSignUpButton" class="primary-button full-width" type="submit">建立顧客帳號</button>
-          </form>
-        </div>
-        <div class="auth-logout-box hidden" id="authLogoutBox">
-          <button id="signOutCardButton" class="secondary-button full-width" type="button">登出</button>
-        </div>
-        <div class="auth-mini hidden" id="authMiniBar">
-          <span id="authMiniText">已登入</span>
-          <button id="signOutMiniButton" class="secondary-button" type="button">登出</button>
-        </div>
-        <div class="backoffice-links hidden" id="backofficeLinks">
-          <button id="goStaffViewButton" class="ghost-button" type="button">員工總覽</button>
-          <button id="goAdminViewButton" class="ghost-button" type="button">管理者後台</button>
-        </div>
-      </aside>
-    </section>
-
-    <nav class="role-tabs" aria-label="系統角色切換">
-      <button class="role-tab active" type="button" data-view="customer" id="customerTabButton">顧客下單</button>
-      <button class="role-tab hidden" type="button" data-view="staff" id="staffTabButton">員工總覽</button>
-      <button class="role-tab hidden" type="button" data-view="admin" id="adminTabButton">管理者後台</button>
-    </nav>
-
-    <section class="view" id="authEntryView">
-      <div class="view-grid auth-entry-layout">
-        <article class="panel auth-entry-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="section-tag">Backoffice</p>
-              <h2>員工 / 管理者登入</h2>
-            </div>
-          </div>
-          <form id="authForm" class="auth-form">
-            <label class="field">
-              <span>Email</span>
-              <input id="authEmailInput" type="email" placeholder="staff@example.com" required>
+              <input id="customerLoginEmail" type="email" placeholder="customer@example.com" required>
             </label>
             <label class="field">
               <span>Password</span>
-              <input id="authPasswordInput" type="password" placeholder="至少 6 碼" required>
+              <input id="customerLoginPassword" type="password" placeholder="至少 6 碼" required>
             </label>
-            <div class="button-row">
-              <button class="primary-button" type="submit">登入</button>
-              <button id="backFromLoginEntryButton" class="secondary-button" type="button">返回首頁</button>
-            </div>
+            <button class="button primary full-width" type="submit">登入後開始點餐</button>
           </form>
-        </article>
+
+          <form id="customerSignupForm" class="stack hidden">
+            <label class="field">
+              <span>姓名</span>
+              <input id="customerSignupName" type="text" placeholder="王小明" required>
+            </label>
+            <label class="field">
+              <span>電話</span>
+              <input id="customerSignupPhone" type="tel" placeholder="0912-345-678" required>
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input id="customerSignupEmail" type="email" placeholder="customer@example.com" required>
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="customerSignupPassword" type="password" placeholder="至少 6 碼" required>
+            </label>
+            <label class="field">
+              <span>確認密碼</span>
+              <input id="customerSignupPasswordConfirm" type="password" placeholder="再次輸入密碼" required>
+            </label>
+            <button class="button primary full-width" type="submit">建立顧客帳號</button>
+          </form>
+
+          <div class="session-box hidden" id="customerSessionBox">
+            <div>
+              <p class="eyebrow">Signed In</p>
+              <strong id="customerSessionText">--</strong>
+            </div>
+            <button id="customerSignOutButton" class="button secondary" type="button">登出</button>
+          </div>
+
+          <div id="statusText" class="status-box">系統啟動中，正在連接資料庫。</div>
+          <div id="customerGate" class="empty-state">登入後即可解鎖菜單、購物車與目前訂單狀態追蹤。</div>
+        </div>
       </div>
     </section>
 
-    <section class="view active" id="customerView">
-      <div class="view-grid customer-layout">
+    <section id="customerContent" class="shell hidden">
+      <section class="layout two-column">
         <article class="panel">
-          <div class="panel-heading">
+          <div class="section-head">
             <div>
-              <p class="section-tag">Customer</p>
+              <p class="eyebrow">Menu</p>
               <h2>菜單點餐</h2>
             </div>
           </div>
 
-          <div class="menu-toolbar">
-            <label class="search-field">
+          <div class="toolbar">
+            <label class="field grow">
               <span>搜尋餐點</span>
               <input id="menuSearchInput" type="search" placeholder="例如：雞腿便當、奶茶">
             </label>
-            <div class="pill-group" id="categoryFilter"></div>
+            <div id="categoryFilter" class="pill-row"></div>
           </div>
 
-          <div class="menu-grid" id="customerMenuList"></div>
+          <div id="customerMenuList" class="menu-grid"></div>
         </article>
 
-        <aside class="panel cart-panel">
-          <div class="panel-heading">
+        <aside class="panel">
+          <div class="section-head">
             <div>
-              <p class="section-tag">Checkout</p>
+              <p class="eyebrow">Checkout</p>
               <h2>建立訂單</h2>
             </div>
           </div>
 
-          <form id="orderForm" class="order-form">
+          <form id="orderForm" class="stack">
             <label class="field">
               <span>顧客姓名</span>
               <input id="customerNameInput" type="text" placeholder="王小明" required>
@@ -162,159 +123,53 @@
             </label>
             <label class="field">
               <span>備註</span>
-              <textarea id="customerNoteInput" rows="3" placeholder="少冰、不要香菜、幾點送達..."></textarea>
+              <textarea id="customerNoteInput" rows="3" placeholder="例如：少冰、不要香菜、送到櫃台"></textarea>
             </label>
 
             <div class="cart-box">
-              <div class="cart-header">
+              <div class="section-head compact">
                 <h3>購物車</h3>
-                <button id="clearCartButton" class="text-button" type="button">清空</button>
+                <button id="clearCartButton" class="button text" type="button">清空</button>
               </div>
               <div id="cartItems" class="cart-items"></div>
-              <div class="cart-summary">
-                <span>總金額</span>
+              <div class="price-row">
+                <span>總計</span>
                 <strong id="cartTotalPrice">NT$ 0</strong>
               </div>
             </div>
 
-            <button class="primary-button full-width" type="submit">送出訂單</button>
+            <button class="button primary full-width" type="submit">送出訂單</button>
           </form>
-
-          <div class="customer-order-status hidden" id="customerOrderStatus">
-            <div class="panel-heading compact">
-              <div>
-                <p class="section-tag">Tracker</p>
-                <h3>目前訂單狀態</h3>
-              </div>
-            </div>
-            <div class="tracker-card">
-              <div class="tracker-row">
-                <span>訂單編號</span>
-                <strong id="customerOrderCode">-</strong>
-              </div>
-              <div class="tracker-row">
-                <span>狀態</span>
-                <strong id="customerOrderState">-</strong>
-              </div>
-              <div class="tracker-row">
-                <span>建立時間</span>
-                <strong id="customerOrderCreatedAt">-</strong>
-              </div>
-              <button id="refreshCustomerOrderButton" class="ghost-button full-width" type="button">更新狀態</button>
-            </div>
-            <div class="customer-order-list" id="customerOrderList"></div>
-          </div>
         </aside>
-      </div>
-    </section>
+      </section>
 
-    <section class="view" id="staffView">
-      <div class="view-grid">
-        <article class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="section-tag">Staff</p>
-              <h2>訂單總覽</h2>
-            </div>
+      <section class="panel tracker-panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Tracker</p>
+            <h2>目前訂單狀態</h2>
           </div>
-
-          <div id="staffAccessGate" class="empty-state hidden"></div>
-
-          <div id="staffContent">
-            <div class="staff-toolbar">
-              <label class="search-field">
-                <span>搜尋訂單</span>
-                <input id="orderSearchInput" type="search" placeholder="編號、電話、地址、姓名">
-              </label>
-              <label class="search-field narrow">
-                <span>狀態篩選</span>
-                <select id="orderStatusFilter">
-                  <option value="all">全部狀態</option>
-                  <option value="new">新訂單</option>
-                  <option value="preparing">製作中</option>
-                  <option value="delivering">外送中</option>
-                  <option value="completed">已完成</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="staff-summary" id="staffSummaryCards"></div>
-            <div class="orders-list" id="staffOrderList"></div>
-          </div>
-          <div class="panel-actions">
-            <button id="backToCustomerFromStaff" class="secondary-button" type="button">返回顧客頁</button>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="view" id="adminView">
-      <div id="adminAccessGate" class="empty-state hidden"></div>
-
-      <div id="adminContent" class="view-grid admin-layout">
-        <article class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="section-tag">Admin</p>
-              <h2>新增與管理餐點</h2>
-            </div>
-            <p class="section-note">只有 admin 角色可以新增、編輯、刪除菜單。</p>
-          </div>
-
-          <form id="menuForm" class="menu-form">
-            <input id="menuItemIdInput" type="hidden">
-            <label class="field">
-              <span>餐點名稱</span>
-              <input id="menuNameInput" type="text" placeholder="香烤雞腿便當" required>
-            </label>
-            <label class="field">
-              <span>分類</span>
-              <input id="menuCategoryInput" type="text" placeholder="便當 / 飲料 / 小點" required>
-            </label>
-            <label class="field">
-              <span>價格</span>
-              <input id="menuPriceInput" type="number" min="0" step="1" placeholder="120" required>
-            </label>
-            <label class="field">
-              <span>排序</span>
-              <input id="menuSortOrderInput" type="number" min="0" step="1" placeholder="0">
-            </label>
-            <label class="field">
-              <span>描述</span>
-              <textarea id="menuDescriptionInput" rows="3" placeholder="主菜、配菜、辣度或特色介紹"></textarea>
-            </label>
-            <label class="checkbox-field">
-              <input id="menuAvailableInput" type="checkbox" checked>
-              <span>目前可供應</span>
-            </label>
-            <div class="button-row">
-              <button class="primary-button" type="submit">儲存餐點</button>
-              <button id="resetMenuFormButton" class="secondary-button" type="button">清除表單</button>
-            </div>
-          </form>
-        </article>
-
-        <article class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="section-tag">Menu</p>
-              <h2>現有菜單</h2>
-            </div>
-          </div>
-          <div class="admin-menu-list" id="adminMenuList"></div>
-        </article>
-      </div>
-      <div class="panel-actions">
-        <button id="backToCustomerFromAdmin" class="secondary-button" type="button">返回顧客頁</button>
-      </div>
-    </section>
-
-    <section class="status-panel">
-      <p id="statusText">系統正在初始化，準備連線 Supabase...</p>
+          <button id="refreshCustomerOrderButton" class="button ghost" type="button">更新狀態</button>
+        </div>
+        <div id="customerOrderStatus" class="tracker-grid hidden">
+          <article class="metric-card">
+            <span>訂單編號</span>
+            <strong id="customerOrderCode">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>目前狀態</span>
+            <strong id="customerOrderState">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>建立時間</span>
+            <strong id="customerOrderCreatedAt">-</strong>
+          </article>
+        </div>
+      </section>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+  <script type="module" src="/scripts/customer-page.js"></script>
 </body>
 </html>
