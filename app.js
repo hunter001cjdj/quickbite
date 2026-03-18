@@ -43,7 +43,14 @@ const elements = {
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
   customerSignUpButton: document.getElementById("customerSignUpButton"),
-  authRegisterRow: document.getElementById("authRegisterRow"),
+  toggleCustomerRegisterButton: document.getElementById("toggleCustomerRegisterButton"),
+  customerRegisterForm: document.getElementById("customerRegisterForm"),
+  customerRegisterNameInput: document.getElementById("customerRegisterNameInput"),
+  customerRegisterPhoneInput: document.getElementById("customerRegisterPhoneInput"),
+  customerRegisterEmailInput: document.getElementById("customerRegisterEmailInput"),
+  customerRegisterPasswordInput: document.getElementById("customerRegisterPasswordInput"),
+  customerRegisterConfirmPasswordInput: document.getElementById("customerRegisterConfirmPasswordInput"),
+  authRegisterPanel: document.getElementById("authRegisterPanel"),
   signOutButton: document.getElementById("signOutButton"),
   signOutCardButton: document.getElementById("signOutCardButton"),
   signOutMiniButton: document.getElementById("signOutMiniButton"),
@@ -127,7 +134,14 @@ function bindEvents() {
     await signOut();
   });
 
-  elements.customerSignUpButton.addEventListener("click", async () => {
+  elements.toggleCustomerRegisterButton.addEventListener("click", () => {
+    const isHidden = elements.customerRegisterForm.classList.contains("hidden");
+    elements.customerRegisterForm.classList.toggle("hidden", !isHidden);
+    elements.toggleCustomerRegisterButton.textContent = isHidden ? "收起註冊" : "展開註冊";
+  });
+
+  elements.customerRegisterForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
     await signUpCustomer();
   });
 
@@ -435,17 +449,32 @@ async function signIn() {
 }
 
 async function signUpCustomer() {
-  const email = elements.authEmailInput.value.trim();
-  const password = elements.authPasswordInput.value.trim();
+  const fullName = elements.customerRegisterNameInput.value.trim();
+  const phone = elements.customerRegisterPhoneInput.value.trim();
+  const email = elements.customerRegisterEmailInput.value.trim();
+  const password = elements.customerRegisterPasswordInput.value.trim();
+  const confirmPassword = elements.customerRegisterConfirmPasswordInput.value.trim();
 
-  if (!email || !password) {
-    setStatus("請先輸入 Email 與密碼，再建立顧客帳號。");
+  if (!fullName || !phone || !email || !password || !confirmPassword) {
+    setStatus("請完整填寫顧客註冊資料。");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setStatus("兩次輸入的密碼不一致。");
     return;
   }
 
   const { error } = await state.supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        full_name: fullName,
+        phone,
+        role: "customer",
+      },
+    },
   });
 
   if (error) {
@@ -453,7 +482,10 @@ async function signUpCustomer() {
     return;
   }
 
-  setStatus("顧客帳號建立成功，請直接登入使用。");
+  elements.customerRegisterForm.reset();
+  elements.customerRegisterForm.classList.add("hidden");
+  elements.toggleCustomerRegisterButton.textContent = "展開註冊";
+  setStatus("顧客帳號建立成功，請使用剛建立的帳號登入。");
 }
 
 async function signOut() {
@@ -1088,7 +1120,7 @@ function renderAuthLayout() {
   elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
   elements.authForm.classList.toggle("hidden", Boolean(state.session?.user));
   elements.authLogoutBox.classList.toggle("hidden", !state.session?.user || showCompactAuth);
-  elements.authRegisterRow.classList.toggle("hidden", Boolean(state.session?.user));
+  elements.authRegisterPanel.classList.toggle("hidden", Boolean(state.session?.user));
   elements.customerTabButton.classList.remove("hidden");
   elements.staffTabButton.classList.add("hidden");
   elements.adminTabButton.classList.add("hidden");

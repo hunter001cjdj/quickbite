@@ -54,8 +54,34 @@
             <button id="signOutButton" class="secondary-button" type="button">登出</button>
           </div>
         </form>
-        <div class="button-row auth-register-row" id="authRegisterRow">
-          <button id="customerSignUpButton" class="ghost-button full-width" type="button">顧客註冊帳號</button>
+        <div class="auth-register-panel" id="authRegisterPanel">
+          <div class="auth-register-head">
+            <strong>顧客註冊帳號</strong>
+            <button id="toggleCustomerRegisterButton" class="ghost-button" type="button">展開註冊</button>
+          </div>
+          <form id="customerRegisterForm" class="auth-form hidden">
+            <label class="field">
+              <span>姓名</span>
+              <input id="customerRegisterNameInput" type="text" placeholder="王小明" required>
+            </label>
+            <label class="field">
+              <span>電話</span>
+              <input id="customerRegisterPhoneInput" type="tel" placeholder="0912-345-678" required>
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input id="customerRegisterEmailInput" type="email" placeholder="customer@example.com" required>
+            </label>
+            <label class="field">
+              <span>密碼</span>
+              <input id="customerRegisterPasswordInput" type="password" placeholder="至少 6 碼" required>
+            </label>
+            <label class="field">
+              <span>確認密碼</span>
+              <input id="customerRegisterConfirmPasswordInput" type="password" placeholder="再次輸入密碼" required>
+            </label>
+            <button id="customerSignUpButton" class="primary-button full-width" type="submit">建立顧客帳號</button>
+          </form>
         </div>
         <div class="auth-logout-box hidden" id="authLogoutBox">
           <button id="signOutCardButton" class="secondary-button full-width" type="button">登出</button>

@@ -156,6 +156,29 @@ body {
   margin-top: 12px;
 }
 
+.auth-register-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(150, 78, 19, 0.08);
+}
+
+.auth-register-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-register-head strong {
+  color: var(--text);
+}
+
+.auth-register-panel form {
+  margin-top: 12px;
+}
+
 .auth-card.compact-auth {
   padding: 14px 16px;
   width: fit-content;
