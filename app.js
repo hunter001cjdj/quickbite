@@ -39,9 +39,12 @@ const elements = {
   heroTimestamp: document.getElementById("heroTimestamp"),
   authSessionInfo: document.getElementById("authSessionInfo"),
   authCard: document.getElementById("authCard"),
+  openLoginEntryButton: document.getElementById("openLoginEntryButton"),
+  authEntryRow: document.getElementById("authEntryRow"),
   authForm: document.getElementById("authForm"),
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
+  backFromLoginEntryButton: document.getElementById("backFromLoginEntryButton"),
   customerSignUpButton: document.getElementById("customerSignUpButton"),
   toggleCustomerRegisterButton: document.getElementById("toggleCustomerRegisterButton"),
   customerRegisterForm: document.getElementById("customerRegisterForm"),
@@ -65,6 +68,7 @@ const elements = {
   adminTabButton: document.getElementById("adminTabButton"),
   roleTabs: [...document.querySelectorAll(".role-tab")],
   views: {
+    authEntry: document.getElementById("authEntryView"),
     customer: document.getElementById("customerView"),
     staff: document.getElementById("staffView"),
     admin: document.getElementById("adminView"),
@@ -128,6 +132,16 @@ function bindEvents() {
   elements.authForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     await signIn();
+  });
+
+  elements.openLoginEntryButton.addEventListener("click", () => {
+    switchView("authEntry");
+    setStatus("請輸入員工或管理者帳號密碼。");
+  });
+
+  elements.backFromLoginEntryButton.addEventListener("click", () => {
+    switchView("customer");
+    setStatus("已返回首頁。");
   });
 
   elements.signOutButton.addEventListener("click", async () => {
@@ -242,6 +256,7 @@ async function bootstrapSupabase() {
     await refreshSecureData();
     renderAuthState();
     renderAccess();
+    redirectAuthenticatedUser();
   });
 
   await loadPublicData();
@@ -249,6 +264,7 @@ async function bootstrapSupabase() {
   await refreshCustomerOrderStatus();
   renderAuthState();
   renderAccess();
+  redirectAuthenticatedUser();
   subscribeRealtime();
   renderAll();
 }
@@ -1118,12 +1134,32 @@ function renderAuthLayout() {
   const showCompactAuth = Boolean(state.session?.user) && ["staff", "admin"].includes(state.currentView);
   elements.authCard.classList.toggle("compact-auth", showCompactAuth);
   elements.authMiniBar.classList.toggle("hidden", !showCompactAuth);
-  elements.authForm.classList.toggle("hidden", Boolean(state.session?.user));
+  elements.authEntryRow.classList.toggle("hidden", Boolean(state.session?.user));
   elements.authLogoutBox.classList.toggle("hidden", !state.session?.user || showCompactAuth);
   elements.authRegisterPanel.classList.toggle("hidden", Boolean(state.session?.user));
   elements.customerTabButton.classList.remove("hidden");
   elements.staffTabButton.classList.add("hidden");
   elements.adminTabButton.classList.add("hidden");
+}
+
+function redirectAuthenticatedUser() {
+  if (!state.session?.user || state.currentView !== "authEntry") {
+    return;
+  }
+
+  if (state.profile?.role === "admin") {
+    switchView("admin");
+    setStatus("已登入並進入管理者後台。");
+    return;
+  }
+
+  if (state.profile?.role === "staff") {
+    switchView("staff");
+    setStatus("已登入並進入員工總覽。");
+    return;
+  }
+
+  switchView("customer");
 }
 
 function renderHeroStatsVisibility() {

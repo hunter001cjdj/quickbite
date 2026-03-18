@@ -32,31 +32,19 @@
         <div class="panel-heading compact">
           <div>
             <p class="section-tag">Auth</p>
-            <h2>員工 / 管理者登入</h2>
+            <h2>員工 / 管理者登入入口</h2>
           </div>
         </div>
 
         <div class="auth-session" id="authSessionInfo">
           尚未登入。員工與管理者請使用 Supabase Auth 帳號登入。
         </div>
-
-        <form id="authForm" class="auth-form">
-          <label class="field">
-            <span>Email</span>
-            <input id="authEmailInput" type="email" placeholder="staff@example.com" required>
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="authPasswordInput" type="password" placeholder="至少 6 碼" required>
-          </label>
-          <div class="button-row">
-            <button class="primary-button" type="submit">登入</button>
-            <button id="signOutButton" class="secondary-button" type="button">登出</button>
-          </div>
-        </form>
+        <div class="button-row auth-entry-row" id="authEntryRow">
+          <button id="openLoginEntryButton" class="primary-button full-width" type="button">前往登入</button>
+        </div>
         <div class="auth-register-panel" id="authRegisterPanel">
           <div class="auth-register-head">
-            <strong>顧客註冊帳號</strong>
+            <strong>顧客註冊</strong>
             <button id="toggleCustomerRegisterButton" class="ghost-button" type="button">展開註冊</button>
           </div>
           <form id="customerRegisterForm" class="auth-form hidden">
@@ -102,6 +90,33 @@
       <button class="role-tab hidden" type="button" data-view="staff" id="staffTabButton">員工總覽</button>
       <button class="role-tab hidden" type="button" data-view="admin" id="adminTabButton">管理者後台</button>
     </nav>
+
+    <section class="view" id="authEntryView">
+      <div class="view-grid auth-entry-layout">
+        <article class="panel auth-entry-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-tag">Backoffice</p>
+              <h2>員工 / 管理者登入</h2>
+            </div>
+          </div>
+          <form id="authForm" class="auth-form">
+            <label class="field">
+              <span>Email</span>
+              <input id="authEmailInput" type="email" placeholder="staff@example.com" required>
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="authPasswordInput" type="password" placeholder="至少 6 碼" required>
+            </label>
+            <div class="button-row">
+              <button class="primary-button" type="submit">登入</button>
+              <button id="backFromLoginEntryButton" class="secondary-button" type="button">返回首頁</button>
+            </div>
+          </form>
+        </article>
+      </div>
+    </section>
 
     <section class="view active" id="customerView">
       <div class="view-grid customer-layout">
