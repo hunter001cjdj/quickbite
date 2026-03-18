@@ -1095,7 +1095,7 @@ function renderAuthLayout() {
 }
 
 function renderHeroStatsVisibility() {
-  const hideStats = state.currentView === "customer";
+  const hideStats = state.currentView === "customer" || !["staff", "admin"].includes(state.currentView);
   elements.heroStats.classList.toggle("hidden", hideStats);
 }
 
