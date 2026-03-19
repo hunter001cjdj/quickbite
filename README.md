@@ -1,6 +1,6 @@
 # QuickBite Supabase
 
-QuickBite 是一個使用 Supabase + Vercel 的多人線上點餐系統，分成顧客入口、員工後台、管理者後台三種使用情境。顧客註冊後可直接登入點餐，訂單與狀態都會寫入 Supabase，員工與管理者可同步查看與處理資料。
+QuickBite 是一個使用 Supabase + Vercel 的多人線上點餐系統，分成顧客入口、員工後台、管理者後台三種使用情境。顧客註冊會先走自家後端 API 建立帳號並直接完成確認，再登入點餐；訂單與狀態都會寫入 Supabase，員工與管理者可同步查看與處理資料。
 
 ## 目前有幾個網站
 
@@ -41,6 +41,7 @@ QuickBite 是一個使用 Supabase + Vercel 的多人線上點餐系統，分成
 ### API
 
 - `api/public-config.js`
+- `api/customer-signup.js`
 - `api/create-order.js`
 - `api/order-status.js`
 - `api/delete-order.js`
@@ -104,13 +105,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 顧客帳號則使用 Supabase Auth，顧客姓名與電話會存在使用者的 `user_metadata`，正式綁單資料則由 `customers` 與 `orders.customer_id` 處理。
 
-### 關閉信箱驗證
+### 顧客註冊流程
 
-如果你要維持現在這版「註冊後直接登入」，請到 Supabase：
+顧客註冊目前改為呼叫 `api/customer-signup.js`，由後端使用 `SUPABASE_SERVICE_ROLE_KEY` 建立 Auth 使用者並直接設定 `email_confirm: true`，所以不再依賴 Supabase Dashboard 裡的信箱驗證開關。
 
-`Authentication > Providers > Email`
-
-將 `Confirm email` 關閉。否則就算前端不再顯示驗證頁，Supabase 仍然會要求顧客先驗證信箱。
+如果你之前已建立過「未驗證」的舊顧客帳號，建議先到 `Authentication > Users` 刪掉那筆舊帳號，再重新註冊一次。
 
 ## 部署方式
 

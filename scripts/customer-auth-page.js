@@ -128,19 +128,23 @@ async function signUpCustomer() {
   const fullName = el.customerSignupName.value.trim();
   const phone = el.customerSignupPhone.value.trim();
 
-  const { error } = await state.supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-        phone,
-      },
+  const response = await fetch("/api/customer-signup", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      email,
+      password,
+      fullName,
+      phone,
+    }),
   });
 
-  if (error) {
-    setText(el.statusText, `註冊失敗：${error.message}`);
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    setText(el.statusText, `註冊失敗：${payload.error || "請稍後再試。"}`);
     return;
   }
 
