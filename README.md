@@ -4,21 +4,24 @@ QuickBite 是一個使用 Supabase + Vercel 製作的線上點餐系統，已拆
 
 ## 目前有幾個頁面
 
-目前共有 5 個主要頁面：
+目前共有 6 個主要頁面：
 
 1. `index.html`
-   顧客入口頁。可註冊、登入、瀏覽菜單、加入購物車、送出訂單、查看自己的歷史訂單與最新狀態。
+   顧客入口頁。顧客先在這裡註冊或登入。
 
 2. `auth-confirm.html`
    顧客信箱驗證頁。顧客點擊驗證信後會先進到這頁，再自動導回顧客首頁。
 
-3. `backoffice-login.html`
+3. `customer-order.html`
+   顧客登入後的點餐系統頁。可瀏覽菜單、加入購物車、送出訂單、查看自己的歷史訂單與最新狀態。
+
+4. `backoffice-login.html`
    員工 / 管理者登入頁。登入成功後依角色自動跳轉。
 
-4. `staff-dashboard.html`
+5. `staff-dashboard.html`
    員工總覽頁。可查看訂單、篩選、更新狀態、刪除取消訂單。
 
-5. `admin-dashboard.html`
+6. `admin-dashboard.html`
    管理者後台頁。可維護菜單品項、價格、分類、描述、排序與供應狀態。
 
 ## 專案結構
@@ -27,6 +30,7 @@ QuickBite 是一個使用 Supabase + Vercel 製作的線上點餐系統，已拆
 
 - `index.html`
 - `auth-confirm.html`
+- `customer-order.html`
 - `backoffice-login.html`
 - `staff-dashboard.html`
 - `admin-dashboard.html`
@@ -38,7 +42,8 @@ QuickBite 是一個使用 Supabase + Vercel 製作的線上點餐系統，已拆
 
 ### 各頁面腳本
 
-- `scripts/customer-page.js`
+- `scripts/customer-auth-page.js`
+- `scripts/customer-order-page.js`
 - `scripts/auth-confirm-page.js`
 - `scripts/login-page.js`
 - `scripts/staff-page.js`
@@ -104,7 +109,7 @@ emailRedirectTo: `${window.location.origin}/auth-confirm.html`
 
 位置：
 
-- `scripts/customer-page.js`
+- `scripts/customer-auth-page.js`
 
 ## 顧客帳號正式綁定
 

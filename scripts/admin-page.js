@@ -166,6 +166,9 @@ function renderMenuList() {
     actions.appendChild(createButton(item.available ? "設為停售" : "恢復供應", "button ghost", async () => {
       await toggleAvailability(item);
     }));
+    actions.appendChild(createButton("刪除餐點", "button ghost", async () => {
+      await deleteMenuItem(item);
+    }));
     card.appendChild(actions);
     el.adminMenuList.appendChild(card);
   });
@@ -196,6 +199,32 @@ async function toggleAvailability(item) {
   await loadMenuItems();
   renderMenuList();
   setText(el.adminStatusText, `${item.name} 已${item.available ? "設為停售" : "恢復供應"}。`);
+}
+
+async function deleteMenuItem(item) {
+  const shouldDelete = window.confirm(`確定要刪除「${item.name}」嗎？這個動作無法復原。`);
+  if (!shouldDelete) {
+    setText(el.adminStatusText, `已取消刪除「${item.name}」。`);
+    return;
+  }
+
+  const { error } = await state.supabase
+    .from("menu_items")
+    .delete()
+    .eq("id", item.id);
+
+  if (error) {
+    setText(el.adminStatusText, `刪除餐點失敗：${error.message}`);
+    return;
+  }
+
+  if (el.menuItemIdInput.value === item.id) {
+    resetForm();
+  }
+
+  await loadMenuItems();
+  renderMenuList();
+  setText(el.adminStatusText, `已刪除餐點「${item.name}」。`);
 }
 
 function resetForm() {

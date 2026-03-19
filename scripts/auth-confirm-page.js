@@ -28,12 +28,12 @@ async function initialize() {
   const session = sessionResult.data.session;
 
   if (session?.user) {
-    setText(el.confirmStatusText, "信箱驗證成功，正在帶你回到顧客首頁...");
+    setText(el.confirmStatusText, "信箱驗證成功，正在帶你前往點餐系統...");
     window.setTimeout(() => {
-      window.location.href = "/index.html";
+      window.location.href = "/customer-order.html";
     }, 1800);
     return;
   }
 
-  setText(el.confirmStatusText, "驗證連結已開啟，若尚未登入請回到顧客首頁重新登入。");
+  setText(el.confirmStatusText, "驗證連結已開啟，若尚未登入請回到顧客入口重新登入。");
 }

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 點餐系統</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="customer-order">
+  <main class="shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <h1>QuickBite 點餐系統</h1>
+        <p class="hero-copy">顧客登入後可在這裡瀏覽菜單、建立訂單與查看歷史訂單。</p>
+      </div>
+      <div class="hero-actions">
+        <div class="session-pill">
+          <span id="customerSessionText">驗證中...</span>
+          <button id="customerSignOutButton" class="button secondary" type="button">登出</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div id="statusText" class="status-box">系統啟動中，正在連接資料庫。</div>
+    </section>
+
+    <section class="layout two-column">
+      <article class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Menu</p>
+            <h2>菜單點餐</h2>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <label class="field grow">
+            <span>搜尋餐點</span>
+            <input id="menuSearchInput" type="search" placeholder="例如：雞腿便當、奶茶">
+          </label>
+          <div id="categoryFilter" class="pill-row"></div>
+        </div>
+
+        <div id="customerMenuList" class="menu-grid"></div>
+      </article>
+
+      <aside class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Checkout</p>
+            <h2>建立訂單</h2>
+          </div>
+        </div>
+
+        <form id="orderForm" class="stack">
+          <label class="field">
+            <span>顧客姓名</span>
+            <input id="customerNameInput" type="text" placeholder="王小明" required>
+          </label>
+          <label class="field">
+            <span>電話</span>
+            <input id="customerPhoneInput" type="tel" placeholder="0912-345-678" required>
+          </label>
+          <label class="field">
+            <span>地址</span>
+            <input id="customerAddressInput" type="text" placeholder="台北市信義區..." required>
+          </label>
+          <label class="field">
+            <span>備註</span>
+            <textarea id="customerNoteInput" rows="3" placeholder="例如：少冰、不要香菜、送到櫃台"></textarea>
+          </label>
+
+          <div class="cart-box">
+            <div class="section-head compact">
+              <h3>購物車</h3>
+              <button id="clearCartButton" class="button text" type="button">清空</button>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+            <div class="price-row">
+              <span>總計</span>
+              <strong id="cartTotalPrice">NT$ 0</strong>
+            </div>
+          </div>
+
+          <button class="button primary full-width" type="submit">送出訂單</button>
+        </form>
+      </aside>
+    </section>
+
+    <section class="panel tracker-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Tracker</p>
+          <h2>目前訂單狀態</h2>
+        </div>
+        <button id="refreshCustomerOrderButton" class="button ghost" type="button">更新狀態</button>
+      </div>
+      <div id="customerOrderStatus" class="tracker-grid hidden">
+        <article class="metric-card">
+          <span>訂單編號</span>
+          <strong id="customerOrderCode">-</strong>
+        </article>
+        <article class="metric-card">
+          <span>目前狀態</span>
+          <strong id="customerOrderState">-</strong>
+        </article>
+        <article class="metric-card">
+          <span>建立時間</span>
+          <strong id="customerOrderCreatedAt">-</strong>
+        </article>
+      </div>
+      <div id="customerOrderList" class="order-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/scripts/customer-order-page.js"></script>
+</body>
+</html>
