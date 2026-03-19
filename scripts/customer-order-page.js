@@ -386,6 +386,17 @@ async function refreshOrderStatus(showFeedback = true) {
   const response = await fetch(`/api/order-status?${query.toString()}`);
   const result = await response.json();
 
+  if (response.status === 404) {
+    el.customerOrderStatus.classList.remove("hidden");
+    setText(el.customerOrderCode, state.lastOrder.orderCode);
+    setText(el.customerOrderState, "訂單已被取消");
+    setText(el.customerOrderCreatedAt, "-");
+    if (showFeedback) {
+      setText(el.statusText, "這筆訂單已被取消。");
+    }
+    return;
+  }
+
   if (!response.ok) {
     setText(el.statusText, result.error || "更新訂單狀態失敗。");
     return;
