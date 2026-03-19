@@ -22,7 +22,7 @@
         <div class="login-card">
           <p class="eyebrow">Customer Portal</p>
           <h1>QuickBite 顧客登入 / 註冊</h1>
-          <p class="hero-copy">先登入或建立顧客帳號，再前往下一個點餐系統頁面。</p>
+          <p class="hero-copy">先登入或建立顧客帳號，再開始點餐與追蹤訂單狀態。</p>
 
           <div class="auth-tabs">
             <button id="showCustomerLoginButton" class="button ghost is-active" type="button">顧客登入</button>
@@ -38,12 +38,12 @@
               <span>Password</span>
               <input id="customerLoginPassword" type="password" placeholder="至少 6 碼" required>
             </label>
-            <button class="button primary full-width" type="submit">登入後前往點餐頁</button>
+            <button class="button primary full-width" type="submit">登入後開始點餐</button>
           </form>
 
           <form id="customerSignupForm" class="stack hidden">
             <label class="field">
-              <span>姓名</span>
+              <span>顧客姓名</span>
               <input id="customerSignupName" type="text" placeholder="王小明" required>
             </label>
             <label class="field">
@@ -71,13 +71,13 @@
               <strong id="customerSessionText">--</strong>
             </div>
             <div class="button-row">
-              <a class="button primary" href="/customer-order.html">進入點餐系統</a>
+              <a class="button primary" href="/customer-order.html">前往點餐系統</a>
               <button id="customerSignOutButton" class="button secondary" type="button">登出</button>
             </div>
           </div>
 
-          <div id="statusText" class="status-box">系統啟動中，正在連接資料庫。</div>
-          <div id="customerGate" class="empty-state">註冊後需先完成信箱驗證。</div>
+          <div id="statusText" class="status-box">系統正常運行中，請先登入或註冊。</div>
+          <div id="customerGate" class="empty-state">註冊完成後可直接登入點餐。</div>
         </div>
       </div>
     </section>

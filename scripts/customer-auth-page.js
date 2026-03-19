@@ -27,7 +27,7 @@ const el = {
 
 initialize().catch((error) => {
   console.error(error);
-  setText(el.statusText, `初始化失敗：${error.message || "資料庫連線異常，請稍後再試。"}`);
+  setText(el.statusText, `資料庫連線異常，請稍後再試。${error.message ? ` (${error.message})` : ""}`);
 });
 
 async function initialize() {
@@ -44,7 +44,7 @@ async function initialize() {
     renderSession();
   });
 
-  setText(el.statusText, "系統正常運行中");
+  setText(el.statusText, "系統正常運行中，請先登入或註冊後開始點餐。");
 }
 
 function bindEvents() {
@@ -69,7 +69,7 @@ function bindEvents() {
     }
 
     renderSession();
-    setText(el.statusText, "已登出顧客帳號。");
+    setText(el.statusText, "已登出，目前可重新登入或註冊。");
   });
 }
 
@@ -94,13 +94,16 @@ function renderSession() {
   setText(el.customerSessionText, label);
   window.setTimeout(() => {
     window.location.href = "/customer-order.html";
-  }, 600);
+  }, 500);
 }
 
 async function signInCustomer() {
+  const email = el.customerLoginEmail.value.trim();
+  const password = el.customerLoginPassword.value;
+
   const { error } = await state.supabase.auth.signInWithPassword({
-    email: el.customerLoginEmail.value.trim(),
-    password: el.customerLoginPassword.value,
+    email,
+    password,
   });
 
   if (error) {
@@ -113,6 +116,7 @@ async function signInCustomer() {
 }
 
 async function signUpCustomer() {
+  const email = el.customerSignupEmail.value.trim();
   const password = el.customerSignupPassword.value;
   const confirmPassword = el.customerSignupPasswordConfirm.value;
 
@@ -121,14 +125,16 @@ async function signUpCustomer() {
     return;
   }
 
+  const fullName = el.customerSignupName.value.trim();
+  const phone = el.customerSignupPhone.value.trim();
+
   const { error } = await state.supabase.auth.signUp({
-    email: el.customerSignupEmail.value.trim(),
+    email,
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth-confirm.html`,
       data: {
-        full_name: el.customerSignupName.value.trim(),
-        phone: el.customerSignupPhone.value.trim(),
+        full_name: fullName,
+        phone,
       },
     },
   });
@@ -138,7 +144,19 @@ async function signUpCustomer() {
     return;
   }
 
+  const signInResult = await state.supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInResult.error) {
+    setText(el.statusText, `註冊成功，但自動登入失敗：${signInResult.error.message}`);
+    toggleAuthMode("login");
+    el.customerLoginEmail.value = email;
+    return;
+  }
+
   el.customerSignupForm.reset();
-  toggleAuthMode("login");
-  setText(el.statusText, "顧客帳號建立成功，請先完成信箱驗證。");
+  setText(el.statusText, "註冊成功，正在登入並前往點餐系統...");
+  window.location.href = "/customer-order.html";
 }
