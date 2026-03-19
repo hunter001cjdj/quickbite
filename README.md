@@ -1,24 +1,24 @@
 # QuickBite Supabase
 
-QuickBite 是一個以 Supabase + Vercel 為基礎的線上點餐系統，現在已經整理成多頁面結構，避免把所有畫面都塞在同一個 `index.html` 裡。
+QuickBite 是一個用 Supabase + Vercel 製作的線上點餐系統，分成顧客頁、後台登入頁、員工總覽頁、管理者後台頁。
 
-## 目前有幾個頁面
+## 頁面數量與用途
 
-目前前端共有 4 個主要頁面：
+目前共有 4 個主要頁面：
 
 1. `index.html`
-   顧客入口頁。顧客可在這裡註冊、登入、瀏覽菜單、加入購物車、送出訂單、查詢最新訂單狀態。
+   顧客入口頁。顧客可註冊、登入、瀏覽菜單、加入購物車、送出訂單、追蹤最新訂單狀態。
 
 2. `backoffice-login.html`
-   員工 / 管理者專用登入頁。登入成功後會依角色自動導向對應後台。
+   員工 / 管理者登入頁。登入成功後依角色自動導向對應後台。
 
 3. `staff-dashboard.html`
-   員工總覽頁。可查看所有訂單、篩選訂單、更新狀態為新訂單 / 製作中 / 外送中 / 已完成，也可刪除已取消訂單。
+   員工總覽頁。可查看全部訂單、篩選訂單、更新狀態、刪除取消訂單。
 
 4. `admin-dashboard.html`
-   管理者後台頁。可新增、編輯、停售或恢復供應菜單品項，管理價格、分類、描述與排序。
+   管理者後台頁。可新增、編輯、停售、恢復供應菜單品項。
 
-## 現在的檔案結構
+## 前端結構
 
 ### 頁面檔案
 
@@ -27,89 +27,28 @@ QuickBite 是一個以 Supabase + Vercel 為基礎的線上點餐系統，現在
 - `staff-dashboard.html`
 - `admin-dashboard.html`
 
-### 共用前端
-
-- `styles.css`
-  全站共用樣式。
+### 共用腳本
 
 - `scripts/shared/supabase-browser.js`
-  在瀏覽器端初始化 Supabase client。
-
 - `scripts/shared/common.js`
-  共用格式化、時間、角色驗證與小工具函式。
 
 ### 各頁面腳本
 
 - `scripts/customer-page.js`
-  顧客首頁邏輯。
-
 - `scripts/login-page.js`
-  後台登入頁邏輯。
-
 - `scripts/staff-page.js`
-  員工總覽邏輯。
-
 - `scripts/admin-page.js`
-  管理者後台邏輯。
 
 ### API
 
 - `api/public-config.js`
-  提供前端 Supabase public config。
-
 - `api/create-order.js`
-  建立訂單 API。
-
 - `api/order-status.js`
-  查詢訂單狀態 API。
-
 - `api/delete-order.js`
-  刪除訂單 API。
 
-### Supabase
+## 環境變數
 
-- `supabase/schema.sql`
-  建表、RLS、Realtime 與初始菜單資料。
-
-## 功能摘要
-
-### 顧客端
-
-- 顧客可註冊與登入。
-- 未登入前不顯示點餐內容。
-- 登入後可瀏覽菜單、加入購物車、送出訂單。
-- 可透過最新訂單資訊查詢目前狀態。
-
-### 員工端
-
-- 查看全部訂單。
-- 依狀態或關鍵字篩選。
-- 更新訂單狀態。
-- 刪除取消訂單。
-
-### 管理者端
-
-- 新增菜單。
-- 編輯現有菜單。
-- 切換供應狀態。
-- 維護價格、分類、描述與排序。
-
-## 本機啟動
-
-```bash
-npm install
-node local-server.js
-```
-
-本機網址：
-
-```text
-http://localhost:3000
-```
-
-## Supabase 環境變數
-
-請建立 `.env.local`：
+建立 `.env.local`：
 
 ```env
 SUPABASE_URL=https://your-project-ref.supabase.co
@@ -117,58 +56,65 @@ SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-## 這個專案目前綁到哪個 GitHub / Vercel
+## Supabase Auth 驗證信設定
 
-### GitHub
+如果驗證信點開後會跳回 `localhost`，通常是 Supabase 的 Auth URL 設定還留在本機網址。
 
-目前本機 remote 指向：
+請到 Supabase Dashboard：
 
-`https://github.com/hunter001cjdj/quickbite.git`
+`Authentication > URL Configuration`
 
-### Vercel
+把下面兩個地方改好：
 
-目前這個資料夾的本機 Vercel link 檔案顯示：
+### Site URL
 
-- Project Name: `quickbite`
-- Project ID: `prj_UKwJGb44TjKuS8HQJ1C2zzyv6KNi`
+填你的正式站，例如：
 
-也就是說，這個專案資料夾本身是有綁到一個名為 `quickbite` 的 Vercel 專案。
-
-如果你在 Vercel 後台看不到，常見原因有：
-
-- 你現在登入的不是同一個 Vercel 帳號或 team
-- 專案是建立在另一個 team 下面
-- 本地已 link，但你尚未在目前帳號的 dashboard 中切到對應 team
-
-## 之後由你自己更新 Vercel 的流程
-
-目前已經把本地 `.vercel` link、`local-server.js`、測試 log 與本地快取檔清掉，後續建議只走：
-
-`本機修改 → git push GitHub → Vercel 線上專案自動 / 手動 Redeploy`
-
-你說後續要由你自己更新 Vercel，可以照這個流程：
-
-1. 先把本機改動 commit
-
-```bash
-git add .
-git commit -m "Refactor QuickBite pages"
+```text
+https://quickbite-peach-five.vercel.app
 ```
 
-2. 推到 GitHub
+### Redirect URLs
 
-```bash
-git push origin main
+至少加入：
+
+```text
+https://quickbite-peach-five.vercel.app
+https://quickbite-peach-five.vercel.app/index.html
 ```
 
-3. 到 Vercel dashboard 找到 `quickbite`
+如果你還會本機測試，也可以保留：
 
-4. 如果這個 repo 已經綁好 GitHub，自動會出現新的 deployment
+```text
+http://localhost:3000
+```
 
-5. 你也可以手動在 Vercel 按 `Redeploy`
+## 程式內的驗證信導向
+
+顧客註冊時，前端現在會主動指定：
+
+```js
+emailRedirectTo: `${window.location.origin}/index.html`
+```
+
+這段已經寫在：
+
+- `scripts/customer-page.js`
+
+## GitHub
+
+目前 GitHub repo：
+
+`https://github.com/hunter001cjdj/quickbite`
+
+## Vercel 更新方式
+
+現在已經不保留本地 `.vercel` 和本地測試伺服器流程，之後建議只走：
+
+`本機修改 -> git push GitHub -> 線上 Vercel Redeploy`
 
 ## 注意事項
 
-- `SUPABASE_SERVICE_ROLE_KEY` 只能放在伺服器端，不能放進前端腳本。
-- 如果你曾經公開貼出 `service_role`，建議去 Supabase 旋轉更新金鑰。
-- 如果 Supabase schema 有更新，記得同步回 `SQL Editor` 再執行一次必要 SQL。
+- `SUPABASE_SERVICE_ROLE_KEY` 只能放伺服器端，不能放進前端。
+- 如果你曾經公開貼出 `service_role key`，建議去 Supabase 旋轉更新。
+- 如果 Auth 驗證信還是跳錯地方，優先檢查 `Authentication > URL Configuration`。

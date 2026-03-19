@@ -166,6 +166,7 @@ async function signUpCustomer() {
     email: el.customerSignupEmail.value.trim(),
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/index.html`,
       data: {
         full_name: el.customerSignupName.value.trim(),
         phone: el.customerSignupPhone.value.trim(),
