@@ -1,28 +1,32 @@
 # QuickBite Supabase
 
-QuickBite 是一個用 Supabase + Vercel 製作的線上點餐系統，分成顧客頁、後台登入頁、員工總覽頁、管理者後台頁。
+QuickBite 是一個使用 Supabase + Vercel 製作的線上點餐系統，已拆成多頁面架構，包含顧客入口、信箱驗證頁、後台登入頁、員工總覽頁與管理者後台頁。
 
-## 頁面數量與用途
+## 目前有幾個頁面
 
-目前共有 4 個主要頁面：
+目前共有 5 個主要頁面：
 
 1. `index.html`
-   顧客入口頁。顧客可註冊、登入、瀏覽菜單、加入購物車、送出訂單、追蹤最新訂單狀態。
+   顧客入口頁。可註冊、登入、瀏覽菜單、加入購物車、送出訂單、查看自己的歷史訂單與最新狀態。
 
-2. `backoffice-login.html`
-   員工 / 管理者登入頁。登入成功後依角色自動導向對應後台。
+2. `auth-confirm.html`
+   顧客信箱驗證頁。顧客點擊驗證信後會先進到這頁，再自動導回顧客首頁。
 
-3. `staff-dashboard.html`
-   員工總覽頁。可查看全部訂單、篩選訂單、更新狀態、刪除取消訂單。
+3. `backoffice-login.html`
+   員工 / 管理者登入頁。登入成功後依角色自動跳轉。
 
-4. `admin-dashboard.html`
-   管理者後台頁。可新增、編輯、停售、恢復供應菜單品項。
+4. `staff-dashboard.html`
+   員工總覽頁。可查看訂單、篩選、更新狀態、刪除取消訂單。
 
-## 前端結構
+5. `admin-dashboard.html`
+   管理者後台頁。可維護菜單品項、價格、分類、描述、排序與供應狀態。
+
+## 專案結構
 
 ### 頁面檔案
 
 - `index.html`
+- `auth-confirm.html`
 - `backoffice-login.html`
 - `staff-dashboard.html`
 - `admin-dashboard.html`
@@ -35,6 +39,7 @@ QuickBite 是一個用 Supabase + Vercel 製作的線上點餐系統，分成顧
 ### 各頁面腳本
 
 - `scripts/customer-page.js`
+- `scripts/auth-confirm-page.js`
 - `scripts/login-page.js`
 - `scripts/staff-page.js`
 - `scripts/admin-page.js`
@@ -45,6 +50,11 @@ QuickBite 是一個用 Supabase + Vercel 製作的線上點餐系統，分成顧
 - `api/create-order.js`
 - `api/order-status.js`
 - `api/delete-order.js`
+
+### Supabase SQL
+
+- `supabase/schema.sql`
+- `supabase/customer-upgrade.sql`
 
 ## 環境變數
 
@@ -58,17 +68,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 ## Supabase Auth 驗證信設定
 
-如果驗證信點開後會跳回 `localhost`，通常是 Supabase 的 Auth URL 設定還留在本機網址。
-
-請到 Supabase Dashboard：
+如果驗證信點開後跑回 `localhost`，請到：
 
 `Authentication > URL Configuration`
 
-把下面兩個地方改好：
+設定如下。
 
 ### Site URL
-
-填你的正式站，例如：
 
 ```text
 https://quickbite-peach-five.vercel.app
@@ -76,11 +82,10 @@ https://quickbite-peach-five.vercel.app
 
 ### Redirect URLs
 
-至少加入：
-
 ```text
 https://quickbite-peach-five.vercel.app
 https://quickbite-peach-five.vercel.app/index.html
+https://quickbite-peach-five.vercel.app/auth-confirm.html
 ```
 
 如果你還會本機測試，也可以保留：
@@ -91,15 +96,32 @@ http://localhost:3000
 
 ## 程式內的驗證信導向
 
-顧客註冊時，前端現在會主動指定：
+顧客註冊時，前端目前會主動指定：
 
 ```js
-emailRedirectTo: `${window.location.origin}/index.html`
+emailRedirectTo: `${window.location.origin}/auth-confirm.html`
 ```
 
-這段已經寫在：
+位置：
 
 - `scripts/customer-page.js`
+
+## 顧客帳號正式綁定
+
+這一版已經補上顧客正式資料結構：
+
+- 新增 `customers` 表
+- `orders` 新增 `customer_id`
+- 顧客註冊後自動寫入 `customers`
+- 顧客登入後可查看自己的歷史訂單
+
+如果你是既有專案，要在 Supabase `SQL Editor` 執行：
+
+- `supabase/customer-upgrade.sql`
+
+如果你是新專案，可以直接使用已更新後的：
+
+- `supabase/schema.sql`
 
 ## GitHub
 
@@ -109,12 +131,12 @@ emailRedirectTo: `${window.location.origin}/index.html`
 
 ## Vercel 更新方式
 
-現在已經不保留本地 `.vercel` 和本地測試伺服器流程，之後建議只走：
+目前建議只走：
 
 `本機修改 -> git push GitHub -> 線上 Vercel Redeploy`
 
 ## 注意事項
 
-- `SUPABASE_SERVICE_ROLE_KEY` 只能放伺服器端，不能放進前端。
-- 如果你曾經公開貼出 `service_role key`，建議去 Supabase 旋轉更新。
-- 如果 Auth 驗證信還是跳錯地方，優先檢查 `Authentication > URL Configuration`。
+- `SUPABASE_SERVICE_ROLE_KEY` 只能放在伺服器端，不能放到前端。
+- 如果你曾公開貼出 `service_role key`，建議去 Supabase 旋轉更新。
+- 如果驗證信仍然跳錯地方，優先檢查 `Authentication > URL Configuration`。

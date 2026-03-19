@@ -13,6 +13,7 @@ const state = {
   supabase: null,
   session: null,
   menuItems: [],
+  customerOrders: [],
   cart: [],
   selectedCategory: "all",
   search: "",
@@ -54,6 +55,7 @@ const el = {
   customerOrderCode: document.getElementById("customerOrderCode"),
   customerOrderState: document.getElementById("customerOrderState"),
   customerOrderCreatedAt: document.getElementById("customerOrderCreatedAt"),
+  customerOrderList: document.getElementById("customerOrderList"),
 };
 
 initialize().catch((error) => {
@@ -70,16 +72,19 @@ async function initialize() {
   state.session = sessionResult.data.session;
   state.lastOrder = loadLastOrder();
 
-  state.supabase.auth.onAuthStateChange((_event, session) => {
+  state.supabase.auth.onAuthStateChange(async (_event, session) => {
     state.session = session;
+    await syncCustomerData();
     renderSession();
   });
 
   await loadMenuItems();
+  await syncCustomerData();
   renderSession();
   renderFilters();
   renderMenu();
   renderCart();
+  renderCustomerOrders();
   await refreshOrderStatus(false);
   setStatus("系統正常運行中");
 }
@@ -106,7 +111,9 @@ function bindEvents() {
     }
 
     state.cart = [];
+    state.customerOrders = [];
     renderCart();
+    renderCustomerOrders();
     setStatus("已登出顧客帳號。");
   });
 
@@ -128,7 +135,17 @@ function bindEvents() {
 
   el.refreshCustomerOrderButton.addEventListener("click", async () => {
     await refreshOrderStatus(true);
+    await loadCustomerOrders();
+    renderCustomerOrders();
   });
+}
+
+async function syncCustomerData() {
+  if (state.session?.user) {
+    await loadCustomerOrders();
+  } else {
+    state.customerOrders = [];
+  }
 }
 
 function toggleAuthMode(mode) {
@@ -166,7 +183,7 @@ async function signUpCustomer() {
     email: el.customerSignupEmail.value.trim(),
     password,
     options: {
-      emailRedirectTo: `${window.location.origin}/index.html`,
+      emailRedirectTo: `${window.location.origin}/auth-confirm.html`,
       data: {
         full_name: el.customerSignupName.value.trim(),
         phone: el.customerSignupPhone.value.trim(),
@@ -181,7 +198,7 @@ async function signUpCustomer() {
 
   el.customerSignupForm.reset();
   toggleAuthMode("login");
-  setStatus("顧客帳號建立成功，請使用新帳號登入。");
+  setStatus("顧客帳號建立成功，請完成信箱驗證後登入。");
 }
 
 async function loadMenuItems() {
@@ -199,6 +216,35 @@ async function loadMenuItems() {
   state.menuItems = Array.isArray(data) ? data : [];
 }
 
+async function loadCustomerOrders() {
+  const { data, error } = await state.supabase
+    .from("orders")
+    .select(`
+      id,
+      order_code,
+      status,
+      total,
+      created_at,
+      note,
+      address,
+      phone,
+      customer_name,
+      order_items (
+        id,
+        item_name,
+        quantity,
+        subtotal
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  state.customerOrders = Array.isArray(data) ? data : [];
+}
+
 function renderSession() {
   const loggedIn = Boolean(state.session?.user);
   el.customerSessionBox.classList.toggle("hidden", !loggedIn);
@@ -207,7 +253,7 @@ function renderSession() {
 
   if (loggedIn) {
     const label = state.session.user.user_metadata?.full_name || state.session.user.email;
-    setText(el.customerSessionText, `${label}`);
+    setText(el.customerSessionText, label);
     if (!el.customerNameInput.value) {
       el.customerNameInput.value = state.session.user.user_metadata?.full_name || "";
     }
@@ -347,6 +393,7 @@ async function submitOrder() {
   }
 
   const payload = {
+    customerId: state.session.user.id,
     customerName: el.customerNameInput.value.trim(),
     phone: el.customerPhoneInput.value.trim(),
     address: el.customerAddressInput.value.trim(),
@@ -378,8 +425,49 @@ async function submitOrder() {
   localStorage.setItem(CUSTOMER_LAST_ORDER_KEY, JSON.stringify(state.lastOrder));
   state.cart = [];
   renderCart();
+  await loadCustomerOrders();
+  renderCustomerOrders();
   await refreshOrderStatus(false);
   setStatus("點餐成功！");
+}
+
+function renderCustomerOrders() {
+  if (!el.customerOrderList) {
+    return;
+  }
+
+  el.customerOrderList.innerHTML = "";
+
+  if (!state.session?.user) {
+    return;
+  }
+
+  if (state.customerOrders.length === 0) {
+    el.customerOrderList.innerHTML = `<div class="empty-state">登入後的歷史訂單會顯示在這裡。</div>`;
+    return;
+  }
+
+  state.customerOrders.forEach((order) => {
+    const card = document.createElement("article");
+    card.className = "order-card";
+    card.innerHTML = `
+      <div class="order-header">
+        <div>
+          <p class="eyebrow">${STATUS_LABELS[order.status] || order.status}</p>
+          <h3>${order.order_code}</h3>
+        </div>
+        <span class="order-total">${formatCurrency(order.total)}</span>
+      </div>
+      <div class="order-meta">
+        <span>建立時間：${formatDateTime(order.created_at)}</span>
+        <span>電話：${order.phone}</span>
+        <span>地址：${order.address}</span>
+        <span>備註：${order.note || "無"}</span>
+      </div>
+      <div class="order-items-box">${(order.order_items || []).map((item) => `${item.item_name} x ${item.quantity} = ${formatCurrency(item.subtotal)}`).join("<br>")}</div>
+    `;
+    el.customerOrderList.appendChild(card);
+  });
 }
 
 function loadLastOrder() {

@@ -7,6 +7,15 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.customers (
+  id uuid primary key references auth.users (id) on delete cascade,
+  full_name text,
+  phone text,
+  email text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.menu_items (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -21,6 +30,7 @@ create table if not exists public.menu_items (
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
+  customer_id uuid references public.customers (id) on delete set null,
   order_code text not null unique,
   customer_name text not null,
   phone text not null,
@@ -66,6 +76,7 @@ for each row
 execute function public.set_updated_at();
 
 alter table public.profiles enable row level security;
+alter table public.customers enable row level security;
 alter table public.menu_items enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
@@ -78,12 +89,57 @@ as $$
   select role from public.profiles where id = auth.uid()
 $$;
 
+create or replace function public.handle_new_customer()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.customers (id, full_name, phone, email)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    coalesce(new.raw_user_meta_data ->> 'phone', ''),
+    new.email
+  )
+  on conflict (id) do update
+  set
+    full_name = excluded.full_name,
+    phone = excluded.phone,
+    email = excluded.email,
+    updated_at = now();
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_customer on auth.users;
+create trigger on_auth_user_created_customer
+after insert on auth.users
+for each row execute function public.handle_new_customer();
+
 drop policy if exists "profiles self read" on public.profiles;
 create policy "profiles self read"
 on public.profiles
 for select
 to authenticated
 using (id = auth.uid());
+
+drop policy if exists "customers self read" on public.customers;
+create policy "customers self read"
+on public.customers
+for select
+to authenticated
+using (id = auth.uid());
+
+drop policy if exists "customers self update" on public.customers;
+create policy "customers self update"
+on public.customers
+for update
+to authenticated
+using (id = auth.uid())
+with check (id = auth.uid());
 
 drop policy if exists "public menu read" on public.menu_items;
 create policy "public menu read"
@@ -107,6 +163,13 @@ for select
 to authenticated
 using (public.current_role() in ('staff', 'admin'));
 
+drop policy if exists "customer read own orders" on public.orders;
+create policy "customer read own orders"
+on public.orders
+for select
+to authenticated
+using (customer_id = auth.uid());
+
 drop policy if exists "staff update orders" on public.orders;
 create policy "staff update orders"
 on public.orders
@@ -121,6 +184,20 @@ on public.order_items
 for select
 to authenticated
 using (public.current_role() in ('staff', 'admin'));
+
+drop policy if exists "customer read own order items" on public.order_items;
+create policy "customer read own order items"
+on public.order_items
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.orders
+    where public.orders.id = public.order_items.order_id
+      and public.orders.customer_id = auth.uid()
+  )
+);
 
 do $$
 begin
@@ -137,6 +214,20 @@ begin
   end;
 end;
 $$;
+
+insert into public.customers (id, full_name, phone, email)
+select
+  u.id,
+  coalesce(u.raw_user_meta_data ->> 'full_name', ''),
+  coalesce(u.raw_user_meta_data ->> 'phone', ''),
+  u.email
+from auth.users u
+on conflict (id) do update
+set
+  full_name = excluded.full_name,
+  phone = excluded.phone,
+  email = excluded.email,
+  updated_at = now();
 
 insert into public.menu_items (name, category, price, description, available, sort_order)
 values

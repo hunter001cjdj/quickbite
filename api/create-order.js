@@ -20,6 +20,7 @@ module.exports = async (req, res) => {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+    const customerId = String(body.customerId || "").trim();
     const customerName = String(body.customerName || "").trim();
     const phone = String(body.phone || "").trim();
     const address = String(body.address || "").trim();
@@ -68,6 +69,7 @@ module.exports = async (req, res) => {
     const orderCode = createOrderCode();
 
     const insertedOrder = await insertOrder(supabaseUrl, serviceRoleKey, {
+      customer_id: customerId || null,
       order_code: orderCode,
       customer_name: customerName,
       phone,

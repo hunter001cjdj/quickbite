@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickBite 信箱驗證</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="auth-confirm">
+  <main class="shell narrow">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow" id="heroTimestamp">--</p>
+        <h1>QuickBite 信箱驗證</h1>
+        <p class="hero-copy">我們正在確認你的顧客帳號，完成後會帶你回到顧客入口頁。</p>
+      </div>
+      <div class="hero-actions">
+        <a class="button ghost" href="/index.html">回到顧客入口</a>
+      </div>
+    </section>
+
+    <section class="panel auth-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Email Confirmation</p>
+          <h2>驗證處理中</h2>
+        </div>
+      </div>
+
+      <div id="confirmStatusText" class="status-box">正在確認驗證資訊...</div>
+
+      <div class="button-row">
+        <a class="button primary" href="/index.html">前往顧客首頁</a>
+        <a class="button ghost" href="/backoffice-login.html">員工 / 管理者入口</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/scripts/auth-confirm-page.js"></script>
+</body>
+</html>
