@@ -99,6 +99,35 @@ https://quickbite-peach-five.vercel.app/auth-confirm.html
 http://localhost:3000
 ```
 
+## 改用 Resend 串 Supabase SMTP
+
+`email rate limit exceeded` 多半是因為你還在用 Supabase 預設寄信服務。正式站建議直接改成 Resend。
+
+### 你要準備的東西
+
+1. Resend 帳號
+2. Resend API Key
+3. 一個已驗證的寄件網域或寄件地址
+
+### Supabase 後台設定位置
+
+`Authentication > Email / SMTP Settings`
+
+### 常用填法
+
+- Host：`smtp.resend.com`
+- Port：`465`
+- Username：`resend`
+- Password：你的 Resend API Key
+- Sender email：你在 Resend 驗證過的寄件信箱，例如 `noreply@yourdomain.com`
+- Sender name：`QuickBite`
+
+### 設定完成後
+
+1. 儲存 Supabase SMTP 設定
+2. 再測一次顧客註冊
+3. 驗證信就會改由 Resend 發送
+
 ## 程式內的驗證信導向
 
 顧客註冊時，前端目前會主動指定：
